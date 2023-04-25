@@ -19,6 +19,9 @@ public:
     virtual void Step(
         std::chrono::microseconds diff);
 
+    virtual PhysicsComponent AddStatic(
+        const std::vector<glm::vec3> &t);
+
     virtual PhysicsComponent AddCube(
         float mass,
         const glm::vec3 &size,

@@ -215,15 +215,15 @@ bool GenMapApp::Startup()
 
     auto info_player_start = _bspAsset->FindEntityByClassname("info_player_start");
 
+    glm::vec3 angles(0.0f);
+    glm::vec3 origin(0.0f);
     if (info_player_start != nullptr)
     {
-        glm::vec3 angles(0.0f);
         std::istringstream(info_player_start->keyvalues["angles"]) >> (angles.x) >> (angles.y) >> (angles.z);
         _cam.RotateX(angles.x);
         _cam.RotateY(angles.y);
         _cam.RotateZ(angles.z);
 
-        glm::vec3 origin(0.0f);
         std::istringstream(info_player_start->keyvalues["origin"]) >> (origin.x) >> (origin.y) >> (origin.z);
         _cam.SetPosition(origin);
     }
@@ -235,7 +235,36 @@ bool GenMapApp::Startup()
     });
 
     _trailShader.compile(trailVertexShader, trailFragmentShader);
+
     glGenBuffers(1, &VBO);
+
+    _physics.AddCube(0.0, glm::vec3(10, 10, 10), origin + glm::vec3(20, 0, 0));
+
+    std::vector<glm::vec3> triangles;
+
+    for (size_t f = 0; f < _bspAsset->_faces.size(); f++)
+    {
+        auto &face = _bspAsset->_faces[f];
+
+        if (face.flags != 0)
+        {
+            continue;
+        }
+
+        auto &vertex1 = _bspAsset->_vertices[face.firstVertex];
+        auto &vertex2 = _bspAsset->_vertices[face.firstVertex + 1];
+
+        for (int v = face.firstVertex + 2; v < face.firstVertex + face.vertexCount; v++)
+        {
+            triangles.push_back(vertex1.position);
+            triangles.push_back(vertex2.position);
+            triangles.push_back(_bspAsset->_vertices[v].position);
+
+            vertex2 = _bspAsset->_vertices[v];
+        }
+    }
+
+    _physics.AddStatic(triangles);
 
     return true;
 }
@@ -508,20 +537,21 @@ bool GenMapApp::Tick(
     std::chrono::milliseconds time,
     const struct InputState &inputState)
 {
+    _physics.Step(time - _lastTime);
+
     const float speed = 0.1f;
     float timeStep = float(time.count() - _lastTime.count());
 
     if (timeStep > 10)
     {
-        _physics.Step(time - _lastTime);
-
         _lastTime = time;
-
-        auto oldCamPosition = _cam.Position();
 
         if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
         {
-            _skipClipping = !_skipClipping;
+            //_skipClipping = !_skipClipping;
+
+            auto comp = _physics.AddSphere(10, 10, _cam.Position());
+            _physics.ApplyForce(comp, _cam.Forward());
         }
 
         if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
@@ -572,6 +602,20 @@ bool GenMapApp::Tick(
     RenderSky();
     RenderBsp();
     RenderTrail();
+
+    _trailShader.use();
+
+    _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix());
+
+    VertexArray vertexAndColorBuffer;
+
+    _physics.RenderDebug(vertexAndColorBuffer);
+
+    vertexAndColorBuffer.upload();
+
+    glDisable(GL_DEPTH_TEST);
+    vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
+    glEnable(GL_DEPTH_TEST);
 
     return true; // to keep running
 }

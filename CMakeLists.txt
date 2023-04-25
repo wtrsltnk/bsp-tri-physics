@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 
 include(cmake/CPM.cmake)
 
-project(genmap)
+project(bsp-tri-physics)
 
 find_package(OPENGL REQUIRED)
 
@@ -57,7 +57,7 @@ if (bullet3_ADDED)
     target_include_directories(bullet3 INTERFACE ${bullet3_SOURCE_DIR}/src)
 endif()
 
-add_executable(genmap
+add_executable(bsp-tri-physics
     camera.cpp
     camera.h
     entitycomponents.h
@@ -88,18 +88,18 @@ add_executable(genmap
     vertexarray.cpp
 )
 
-target_sources(genmap
+target_sources(bsp-tri-physics
     PRIVATE
         include/GL/wglext.h
 )
 
-target_include_directories(genmap
+target_include_directories(bsp-tri-physics
     PRIVATE
         include
         glad
 )
 
-target_link_libraries(genmap
+target_link_libraries(bsp-tri-physics
     PRIVATE
         ${OPENGL_LIBRARIES}
         glm
@@ -112,7 +112,7 @@ target_link_libraries(genmap
         bullet3
 )
 
-target_compile_features(genmap
+target_compile_features(bsp-tri-physics
     PRIVATE
         cxx_std_17
         cxx_auto_type
@@ -122,7 +122,7 @@ target_compile_features(genmap
 )
 
 if(MINGW)
-    target_link_options(genmap
+    target_link_options(bsp-tri-physics
         PUBLIC
             -static
     )

@@ -42,7 +42,10 @@ PhysicsComponent PhysicsService::AddObject(
 {
     btVector3 fallInertia(0, 0, 0);
 
-    shape->calculateLocalInertia(mass, fallInertia);
+    if (mass > 0.0f)
+    {
+        shape->calculateLocalInertia(mass, fallInertia);
+    }
 
     btRigidBody::btRigidBodyConstructionInfo rbci(mass, nullptr, shape, fallInertia);
     rbci.m_startWorldTransform.setOrigin(btVector3(startPos.x, startPos.y, startPos.z));
@@ -61,6 +64,24 @@ PhysicsComponent PhysicsService::AddObject(
     return PhysicsComponent({
         bodyIndex,
     });
+}
+
+PhysicsComponent PhysicsService::AddStatic(
+    const std::vector<glm::vec3> &t)
+{
+    auto mesh = new btTriangleMesh();
+
+    for (size_t i = 0; i < t.size(); i += 3)
+    {
+        mesh->addTriangle(
+            btVector3(t[i + 0].x, t[i + 0].y, t[i + 0].z),
+            btVector3(t[i + 1].x, t[i + 1].y, t[i + 1].z),
+            btVector3(t[i + 2].x, t[i + 2].y, t[i + 2].z));
+    }
+
+    auto shape = new btBvhTriangleMeshShape(mesh, true);
+
+    return AddObject(shape, 0.0f, glm::vec3(), true);
 }
 
 PhysicsComponent PhysicsService::AddCube(
