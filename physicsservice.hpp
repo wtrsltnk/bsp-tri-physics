@@ -17,7 +17,7 @@ public:
     virtual ~PhysicsService();
 
     virtual void Step(
-        std::chrono::microseconds diff);
+        std::chrono::nanoseconds diff);
 
     virtual PhysicsComponent AddStatic(
         const std::vector<glm::vec3> &t);

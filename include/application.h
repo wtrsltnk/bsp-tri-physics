@@ -207,7 +207,7 @@ public:
         std::function<void()> destroy);
 
     int Run(
-        std::function<bool(std::chrono::milliseconds time, const struct InputState &inputState)> tick);
+        std::function<bool(std::chrono::nanoseconds time, const struct InputState &inputState)> tick);
 
 private:
     std::function<void(int width, int height)> _resize;
@@ -378,6 +378,19 @@ bool Win32Application::Startup(
     return true;
 }
 
+std::chrono::nanoseconds GetDiffTime()
+{
+    static std::chrono::time_point<std::chrono::steady_clock> prev = std::chrono::steady_clock::now();
+
+    auto now = std::chrono::steady_clock::now();
+
+    auto result = std::chrono::duration_cast<std::chrono::nanoseconds>(now - prev);
+
+    prev = now;
+
+    return result;
+}
+
 std::chrono::milliseconds CurrentTime()
 {
     auto now = std::chrono::system_clock::now().time_since_epoch();
@@ -386,7 +399,7 @@ std::chrono::milliseconds CurrentTime()
 }
 
 int Win32Application::Run(
-    std::function<bool(std::chrono::milliseconds time, const struct InputState &inputState)> tick)
+    std::function<bool(std::chrono::nanoseconds time, const struct InputState &inputState)> tick)
 {
     bool running = true;
 
@@ -415,7 +428,7 @@ int Win32Application::Run(
             break;
         }
 
-        running = tick(CurrentTime(), _inputState);
+        running = tick(GetDiffTime(), _inputState);
 
         SwapBuffers(_hDC);
     }
@@ -1009,7 +1022,7 @@ int Application::Run(TApp &t)
         [&](int w, int h) { t.Resize(w, h); },
         [&]() { t.Destroy(); });
 
-    return app->Run([&](std::chrono::milliseconds time, const struct InputState &inputState) { return t.Tick(time, inputState); });
+    return app->Run([&](std::chrono::nanoseconds time, const struct InputState &inputState) { return t.Tick(time, inputState); });
 }
 
 #endif //APPLICATION_IMPLEMENTATION

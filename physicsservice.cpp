@@ -22,10 +22,10 @@ PhysicsService::PhysicsService()
 PhysicsService::~PhysicsService() = default;
 
 void PhysicsService::Step(
-    std::chrono::microseconds diff)
+    std::chrono::nanoseconds diff)
 {
     static double time = 0;
-    time += static_cast<double>(diff.count() / 1000000000.0);
+    time += static_cast<double>(diff.count() / 1000000.0);
     while (time > 0)
     {
         mDynamicsWorld->stepSimulation(btScalar(1000.0f / 60.0f), 1, btScalar(1.0) / btScalar(30.0f));
@@ -91,7 +91,23 @@ PhysicsComponent PhysicsService::AddCube(
 {
     auto shape = new btBoxShape(btVector3(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f));
 
-    return AddObject(shape, mass, startPos, true);
+    btVector3 fallInertia(0, 0, 0);
+
+    shape->calculateLocalInertia(mass, fallInertia);
+
+    btRigidBody::btRigidBodyConstructionInfo rbci(mass, nullptr, shape, fallInertia);
+    rbci.m_startWorldTransform.setOrigin(btVector3(startPos.x, startPos.y, startPos.z));
+
+    auto body = new btRigidBody(rbci);
+
+    auto bodyIndex = _rigidBodies.size();
+
+    mDynamicsWorld->addRigidBody(body);
+    _rigidBodies.push_back(body);
+
+    return PhysicsComponent({
+        bodyIndex,
+    });
 }
 
 PhysicsComponent PhysicsService::AddCorner(

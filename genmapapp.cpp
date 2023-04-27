@@ -187,8 +187,237 @@ const char *trailFragmentShader = GLSL(
 
 static bool _skipClipping = false;
 
+// pos x, y, z, color h, s, v
+static float vertices[216] = {
+    -0.5f,
+    -0.5f,
+    -0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    0.5f,
+    -0.5f,
+    -0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    -0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    -0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    0.5f,
+    -0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    -0.5f,
+    -0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+
+    -0.5f,
+    -0.5f,
+    0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    0.5f,
+    -0.5f,
+    0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    0.5f,
+    0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    -0.5f,
+    0.5f,
+    0.4f,
+    0.6f,
+    1.0f,
+
+    -0.5f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    -0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    -0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    -0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+
+    0.5f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    0.5f,
+    -0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    0.5f,
+    -0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    0.5f,
+    -0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    1.0f,
+
+    -0.5f,
+    -0.5f,
+    -0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    0.5f,
+    -0.5f,
+    -0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    -0.5f,
+    0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    -0.5f,
+    -0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+
+    -0.5f,
+    0.5f,
+    -0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    -0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    0.5f,
+    0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+    -0.5f,
+    0.5f,
+    -0.5f,
+    0.6f,
+    0.6f,
+    1.0f,
+};
+
+static std::tuple<size_t, size_t> mesh;
+
 bool GenMapApp::Startup()
 {
+    _physics = new PhysicsService();
+
     spdlog::debug("Startup()");
 
     glEnable(GL_DEBUG_OUTPUT);
@@ -238,7 +467,7 @@ bool GenMapApp::Startup()
 
     glGenBuffers(1, &VBO);
 
-    _physics.AddCube(0.0, glm::vec3(10, 10, 10), origin + glm::vec3(20, 0, 0));
+    // _physics->AddCube(0.0, glm::vec3(10, 10, 10), origin + glm::vec3(20, 0, 0));
 
     std::vector<glm::vec3> triangles;
 
@@ -264,7 +493,11 @@ bool GenMapApp::Startup()
         }
     }
 
-    _physics.AddStatic(triangles);
+    _physics->AddStatic(triangles);
+
+    _vertexArray = new VertexArray();
+    mesh = _vertexArray->add(vertices, 36, glm::vec3(10.0f));
+    _vertexArray->upload();
 
     return true;
 }
@@ -533,25 +766,26 @@ void GenMapApp::Destroy()
     }
 }
 
+std::vector<PhysicsComponent> balls;
+
 bool GenMapApp::Tick(
-    std::chrono::milliseconds time,
+    std::chrono::nanoseconds time,
     const struct InputState &inputState)
 {
-    _physics.Step(time - _lastTime);
+    _physics->Step(time);
 
-    const float speed = 0.1f;
-    float timeStep = float(time.count() - _lastTime.count());
+    const float speed = 1.0f;
+    float timeStep = float(time.count()) / 1000000.0f;
 
     if (timeStep > 10)
     {
-        _lastTime = time;
-
         if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
         {
             //_skipClipping = !_skipClipping;
 
-            auto comp = _physics.AddSphere(10, 10, _cam.Position());
-            _physics.ApplyForce(comp, _cam.Forward());
+            auto comp = _physics->AddCube(10.0f, glm::vec3(10), _cam.Position());
+            _physics->ApplyForce(comp, _cam.Forward() * 50050.0f);
+            balls.push_back(comp);
         }
 
         if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
@@ -603,13 +837,22 @@ bool GenMapApp::Tick(
     RenderBsp();
     RenderTrail();
 
+    glDisable(GL_CULL_FACE);
     _trailShader.use();
 
-    _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix());
+    for (auto &ball : balls)
+    {
+        auto m = _physics->GetMatrix(ball);
+
+        _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * m);
+
+        _vertexArray->render(VertexArrayRenderModes::Triangles, std::get<0>(mesh), std::get<1>(mesh));
+    }
+    glEnable(GL_CULL_FACE);
 
     VertexArray vertexAndColorBuffer;
 
-    _physics.RenderDebug(vertexAndColorBuffer);
+    //_physics->RenderDebug(vertexAndColorBuffer);
 
     vertexAndColorBuffer.upload();
 

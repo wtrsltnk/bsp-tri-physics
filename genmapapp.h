@@ -115,7 +115,7 @@ public:
     void Destroy();
 
     bool Tick(
-        std::chrono::milliseconds time,
+        std::chrono::nanoseconds time,
         const struct InputState &inputState);
 
     void RenderTrail();
@@ -133,6 +133,7 @@ private:
     FileSystem _fs;
     std::string _map;
     valve::hl1::BspAsset *_bspAsset = nullptr;
+    VertexArray* _vertexArray;
     glm::mat4 _projectionMatrix = glm::mat4(1.0f);
     ShaderType _trailShader;
     ShaderType _skyShader;
@@ -147,10 +148,9 @@ private:
     std::map<GLuint, FaceType> _facesByLightmapAtlas;
     Camera _cam;
     entt::registry _registry;
-    PhysicsService _physics;
+    PhysicsService *_physics = nullptr;
 
     unsigned int VBO;
-    std::chrono::milliseconds _lastTime;
     std::vector<glm::vec3> _trail;
 };
 
