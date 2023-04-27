@@ -499,7 +499,113 @@ bool GenMapApp::Startup()
     mesh = _vertexArray->add(vertices, 36, glm::vec3(10.0f));
     _vertexArray->upload();
 
+    _character = _physics->AddCharacter(150, 20, 32, origin);
+
     return true;
+}
+
+std::vector<PhysicsComponent> balls;
+
+bool GenMapApp::Tick(
+    std::chrono::nanoseconds time,
+    const struct InputState &inputState)
+{
+    _physics->Step(time);
+
+    const float speed = 5.0f;
+    float timeStep = float(time.count()) / 1000000.0f;
+
+    if (timeStep > 10)
+    {
+        if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
+        {
+            //_skipClipping = !_skipClipping;
+
+            auto comp = _physics->AddCube(10.0f, glm::vec3(10), _cam.Position());
+            _physics->ApplyForce(comp, _cam.Forward() * 50050.0f);
+            balls.push_back(comp);
+        }
+
+        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
+        {
+            //_cam.MoveLeft(speed * timeStep);
+            _physics->MoveCharacter(_character, _cam.Left(), speed * timeStep);
+        }
+        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyRight] || inputState.KeyboardButtonStates[KeyboardButtons::KeyD])
+        {
+            //_cam.MoveLeft(-speed * timeStep);
+            _physics->MoveCharacter(_character, -1.0f * _cam.Left(), speed * timeStep);
+        }
+
+        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+        {
+            // _cam.MoveForward(speed * timeStep);
+            _physics->MoveCharacter(_character, _cam.Forward(), speed * timeStep);
+        }
+        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+        {
+            // _cam.MoveForward(-speed * timeStep);
+            _physics->MoveCharacter(_character, -1.0f * _cam.Forward(), speed * timeStep);
+        }
+
+        //        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyQ])
+        //        {
+        //            _cam.MoveUp(speed * timeStep);
+        //        }
+        //        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyZ])
+        //        {
+        //            _cam.MoveUp(-speed * timeStep);
+        //        }
+
+        static int lastPointerX = inputState.MousePointerPosition[0];
+        static int lastPointerY = inputState.MousePointerPosition[1];
+
+        int diffX = -(inputState.MousePointerPosition[0] - lastPointerX);
+        int diffY = -(inputState.MousePointerPosition[1] - lastPointerY);
+
+        lastPointerX = inputState.MousePointerPosition[0];
+        lastPointerY = inputState.MousePointerPosition[1];
+
+        if (inputState.MouseButtonStates[MouseButtons::LeftButton])
+        {
+            _cam.RotateZ(glm::radians(float(diffX) * 0.1f));
+            _cam.RotateX(glm::radians(float(diffY) * 0.1f));
+        }
+
+        auto m = _physics->GetMatrix(_character);
+        _cam.SetPosition(glm::vec3(m[3]) + glm::vec3(0.0f, 0.0f, 40.0f));
+    }
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    RenderSky();
+    RenderBsp();
+    RenderTrail();
+
+    glDisable(GL_CULL_FACE);
+    _trailShader.use();
+
+    for (auto &ball : balls)
+    {
+        auto m = _physics->GetMatrix(ball);
+
+        _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * m);
+
+        _vertexArray->render(VertexArrayRenderModes::Triangles, std::get<0>(mesh), std::get<1>(mesh));
+    }
+    glEnable(GL_CULL_FACE);
+
+    VertexArray vertexAndColorBuffer;
+
+    //_physics->RenderDebug(vertexAndColorBuffer);
+
+    vertexAndColorBuffer.upload();
+
+    glDisable(GL_DEPTH_TEST);
+    vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
+    glEnable(GL_DEPTH_TEST);
+
+    return true; // to keep running
 }
 
 void GenMapApp::SetFilename(
@@ -764,103 +870,6 @@ void GenMapApp::Destroy()
         delete _bspAsset;
         _bspAsset = nullptr;
     }
-}
-
-std::vector<PhysicsComponent> balls;
-
-bool GenMapApp::Tick(
-    std::chrono::nanoseconds time,
-    const struct InputState &inputState)
-{
-    _physics->Step(time);
-
-    const float speed = 1.0f;
-    float timeStep = float(time.count()) / 1000000.0f;
-
-    if (timeStep > 10)
-    {
-        if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
-        {
-            //_skipClipping = !_skipClipping;
-
-            auto comp = _physics->AddCube(10.0f, glm::vec3(10), _cam.Position());
-            _physics->ApplyForce(comp, _cam.Forward() * 50050.0f);
-            balls.push_back(comp);
-        }
-
-        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
-        {
-            _cam.MoveLeft(speed * timeStep);
-        }
-        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyRight] || inputState.KeyboardButtonStates[KeyboardButtons::KeyD])
-        {
-            _cam.MoveLeft(-speed * timeStep);
-        }
-
-        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
-        {
-            _cam.MoveForward(speed * timeStep);
-        }
-        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
-        {
-            _cam.MoveForward(-speed * timeStep);
-        }
-
-        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyQ])
-        {
-            _cam.MoveUp(speed * timeStep);
-        }
-        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyZ])
-        {
-            _cam.MoveUp(-speed * timeStep);
-        }
-
-        static int lastPointerX = inputState.MousePointerPosition[0];
-        static int lastPointerY = inputState.MousePointerPosition[1];
-
-        int diffX = -(inputState.MousePointerPosition[0] - lastPointerX);
-        int diffY = -(inputState.MousePointerPosition[1] - lastPointerY);
-
-        lastPointerX = inputState.MousePointerPosition[0];
-        lastPointerY = inputState.MousePointerPosition[1];
-
-        if (inputState.MouseButtonStates[MouseButtons::LeftButton])
-        {
-            _cam.RotateZ(glm::radians(float(diffX) * 0.1f));
-            _cam.RotateX(glm::radians(float(diffY) * 0.1f));
-        }
-    }
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    RenderSky();
-    RenderBsp();
-    RenderTrail();
-
-    glDisable(GL_CULL_FACE);
-    _trailShader.use();
-
-    for (auto &ball : balls)
-    {
-        auto m = _physics->GetMatrix(ball);
-
-        _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * m);
-
-        _vertexArray->render(VertexArrayRenderModes::Triangles, std::get<0>(mesh), std::get<1>(mesh));
-    }
-    glEnable(GL_CULL_FACE);
-
-    VertexArray vertexAndColorBuffer;
-
-    //_physics->RenderDebug(vertexAndColorBuffer);
-
-    vertexAndColorBuffer.upload();
-
-    glDisable(GL_DEPTH_TEST);
-    vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
-    glEnable(GL_DEPTH_TEST);
-
-    return true; // to keep running
 }
 
 void GenMapApp::RenderTrail()

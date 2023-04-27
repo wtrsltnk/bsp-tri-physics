@@ -19,6 +19,12 @@ public:
     virtual PhysicsComponent AddStatic(
         const std::vector<glm::vec3> &t) = 0;
 
+    virtual PhysicsComponent AddCharacter(
+        float mass,
+        float radius,
+        float heigth,
+        const glm::vec3 &startPos) = 0;
+
     virtual PhysicsComponent AddCube(
         float mass,
         const glm::vec3 &size,
@@ -46,6 +52,11 @@ public:
         const glm::vec3 &startPos,
         const float wheelRadius,
         const float wheelWidth) = 0;
+
+    virtual void MoveCharacter(
+        const PhysicsComponent &component,
+        const glm::vec3& direction,
+        float speed) = 0;
 
     virtual void ApplyForce(
         const PhysicsComponent &component,

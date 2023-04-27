@@ -133,7 +133,7 @@ private:
     FileSystem _fs;
     std::string _map;
     valve::hl1::BspAsset *_bspAsset = nullptr;
-    VertexArray* _vertexArray;
+    VertexArray *_vertexArray;
     glm::mat4 _projectionMatrix = glm::mat4(1.0f);
     ShaderType _trailShader;
     ShaderType _skyShader;
@@ -149,6 +149,7 @@ private:
     Camera _cam;
     entt::registry _registry;
     PhysicsService *_physics = nullptr;
+    PhysicsComponent _character;
 
     unsigned int VBO;
     std::vector<glm::vec3> _trail;

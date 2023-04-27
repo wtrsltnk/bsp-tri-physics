@@ -28,9 +28,9 @@ void PhysicsService::Step(
     time += static_cast<double>(diff.count() / 1000000.0);
     while (time > 0)
     {
-        mDynamicsWorld->stepSimulation(btScalar(1000.0f / 60.0f), 1, btScalar(1.0) / btScalar(30.0f));
+        mDynamicsWorld->stepSimulation(btScalar(1000.0f / 120.0f), 1, btScalar(1.0) / btScalar(30.0f));
 
-        time -= (1000.0 / 60.0);
+        time -= (1000.0 / 120.0);
     }
 }
 
@@ -55,6 +55,49 @@ PhysicsComponent PhysicsService::AddObject(
     {
         body->setActivationState(DISABLE_DEACTIVATION);
     }
+
+    auto bodyIndex = _rigidBodies.size();
+
+    mDynamicsWorld->addRigidBody(body);
+    _rigidBodies.push_back(body);
+
+    return PhysicsComponent({
+        bodyIndex,
+    });
+}
+
+PhysicsComponent PhysicsService::AddCharacter(
+    float mass,
+    float radius,
+    float heigth,
+    const glm::vec3 &startPos)
+{
+    auto shape = new btCapsuleShape(radius, heigth);
+
+    btVector3 fallInertia(0, 0, 0);
+
+    if (mass > 0.0f)
+    {
+        shape->calculateLocalInertia(mass, fallInertia);
+    }
+
+    btRigidBody::btRigidBodyConstructionInfo rbci(mass, nullptr, shape, fallInertia);
+    rbci.m_startWorldTransform.setOrigin(btVector3(startPos.x, startPos.y, startPos.z));
+
+    auto body = new btRigidBody(rbci);
+    body->setActivationState(DISABLE_DEACTIVATION);
+
+    /// Make sure this object is always busy
+    body->setSleepingThresholds(0.0f, 0.0f);
+
+    /// Make sure the capule will stay up
+    body->setAngularFactor(0.0f);
+
+    /// No to almost no bouncing on the floor
+    body->setRestitution(0.0f);
+
+    /// No friction to make sure you can't "climb walls"
+    body->setFriction(0.0f);
 
     auto bodyIndex = _rigidBodies.size();
 
@@ -312,6 +355,77 @@ bool PhysicsService::SetupWheels(
     }
 
     return vehicle->getNumWheels() == int(wheelAxis.size());
+}
+
+class FindGround : public btCollisionWorld::ContactResultCallback
+{
+public:
+    btScalar addSingleResult(
+        btManifoldPoint &cp,
+        const btCollisionObjectWrapper *colObj0, int partId0, int index0,
+        const btCollisionObjectWrapper *colObj1, int partId1, int index1);
+
+    btRigidBody *mMe;
+    // Assign some values, in some way
+    float mShapeHalfHeight;
+    float mRadiusThreshold;
+    float mMaxCosGround;
+    bool mHaveGround = false;
+    btVector3 mGroundPoint;
+};
+
+btScalar FindGround::addSingleResult(
+    btManifoldPoint &cp,
+    const btCollisionObjectWrapper *colObj0, int partId0, int index0,
+    const btCollisionObjectWrapper *colObj1, int partId1, int index1)
+{
+    if (colObj0->m_collisionObject == mMe && !mHaveGround)
+    {
+        const btTransform &transform = mMe->getWorldTransform();
+        // Orthonormal basis (just rotations) => can just transpose to invert
+        btMatrix3x3 invBasis = transform.getBasis().transpose();
+        btVector3 localPoint = invBasis * (cp.m_positionWorldOnB - transform.getOrigin());
+        localPoint[2] += mShapeHalfHeight;
+        float r = localPoint.length();
+        float cosTheta = localPoint[2] / r;
+
+        if (fabs(r - 16) <= mRadiusThreshold && cosTheta < mMaxCosGround)
+        {
+            mHaveGround = true;
+            mGroundPoint = cp.m_positionWorldOnB;
+        }
+    }
+    return 0;
+}
+
+void PhysicsService::MoveCharacter(
+    const PhysicsComponent &component,
+    const glm::vec3 &direction,
+    float speed)
+{
+    btVector3 move(direction.x * speed, direction.y * speed, 0.0f);
+
+    FindGround callback;
+    mDynamicsWorld->contactTest(_rigidBodies[component.bodyIndex], callback);
+    bool onGround = callback.mHaveGround;
+
+    btVector3 linearVelocity = _rigidBodies[component.bodyIndex]->getLinearVelocity();
+
+    if (move.fuzzyZero() && onGround)
+    {
+        linearVelocity *= 0.1f;
+    }
+    else
+    {
+        linearVelocity = linearVelocity + move;
+
+        if (linearVelocity.length() > speed)
+        {
+            linearVelocity *= (speed / linearVelocity.length());
+        }
+    }
+
+    _rigidBodies[component.bodyIndex]->setLinearVelocity(linearVelocity);
 }
 
 void PhysicsService::ApplyForce(
