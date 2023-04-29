@@ -115,7 +115,7 @@ public:
     void Destroy();
 
     bool Tick(
-        std::chrono::nanoseconds time,
+        std::chrono::milliseconds time,
         const struct InputState &inputState);
 
     void RenderTrail();
@@ -153,6 +153,8 @@ private:
 
     unsigned int VBO;
     std::vector<glm::vec3> _trail;
+
+    static float vertices[216];
 };
 
 #endif // GENMAPAPP_H

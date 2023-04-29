@@ -170,11 +170,19 @@ struct InputState
     void OnMouseButtonUp(
         MouseButtons button,
         std::function<void()> func);
+
+    void SetMousePointerPosition(
+        int x,
+        int y);
 };
 
 bool IsKeyboardButtonPushed(
     const struct InputState &inputState,
     KeyboardButtons button);
+
+bool IsMouseButtonPushed(
+    const struct InputState &inputState,
+    MouseButtons button);
 
 #endif // APPLICATION_H
 
@@ -187,12 +195,20 @@ bool IsKeyboardButtonPushed(
     return inputState.KeyboardButtonStates[button] && inputState.KeyboardButtonStates[button] != inputState.PreviousState->KeyboardButtonStates[button];
 }
 
+bool IsMouseButtonPushed(
+    const struct InputState &inputState,
+    MouseButtons button)
+{
+
+    return inputState.MouseButtonStates[button] && inputState.MouseButtonStates[button] != inputState.PreviousState->MouseButtonStates[button];
+}
+
 #include <glad/glad.h>
 
 #ifdef _WIN32
 
 #include <GL/wglext.h>
-#include <windows.h>
+#include <windowsx.h>
 
 #define EXAMPLE_NAME "genmap"
 
@@ -207,7 +223,7 @@ public:
         std::function<void()> destroy);
 
     int Run(
-        std::function<bool(std::chrono::nanoseconds time, const struct InputState &inputState)> tick);
+        std::function<bool(std::chrono::milliseconds time, const struct InputState &inputState)> tick);
 
 private:
     std::function<void(int width, int height)> _resize;
@@ -378,13 +394,13 @@ bool Win32Application::Startup(
     return true;
 }
 
-std::chrono::nanoseconds GetDiffTime()
+std::chrono::milliseconds GetDiffTime()
 {
     static std::chrono::time_point<std::chrono::steady_clock> prev = std::chrono::steady_clock::now();
 
     auto now = std::chrono::steady_clock::now();
 
-    auto result = std::chrono::duration_cast<std::chrono::nanoseconds>(now - prev);
+    auto result = std::chrono::duration_cast<std::chrono::milliseconds>(now - prev);
 
     prev = now;
 
@@ -399,7 +415,7 @@ std::chrono::milliseconds CurrentTime()
 }
 
 int Win32Application::Run(
-    std::function<bool(std::chrono::nanoseconds time, const struct InputState &inputState)> tick)
+    std::function<bool(std::chrono::milliseconds time, const struct InputState &inputState)> tick)
 {
     bool running = true;
 
@@ -428,7 +444,21 @@ int Win32Application::Run(
             break;
         }
 
+        POINT point;
+        GetCursorPos(&point);
+
+        RECT rect;
+        GetWindowRect(this->_hWnd, &rect);
+
+        auto centerX = rect.left + ((rect.right - rect.left) / 2);
+        auto centerY = rect.top + ((rect.bottom - rect.top) / 2);
+
+        SetCursorPos(centerX, centerY);
+
         running = tick(GetDiffTime(), _inputState);
+
+        _inputState.MousePointerPosition[0] = centerX - point.x;
+        _inputState.MousePointerPosition[1] = centerY - point.y;
 
         SwapBuffers(_hDC);
     }
@@ -476,6 +506,33 @@ LRESULT CALLBACK Win32Application::objectProc(
             auto height = HIWORD(lParam);
 
             this->_resize(width, height);
+
+            RECT rect;
+            GetWindowRect(this->_hWnd, &rect);
+            SetCursorPos(
+                rect.left + ((rect.right - rect.left) / 2),
+                rect.top + ((rect.bottom - rect.top) / 2));
+            ClipCursor(&rect);
+            ShowCursor(FALSE);
+
+            break;
+        }
+        case WM_DESTROY:
+        {
+            ClipCursor(NULL);
+            ShowCursor(TRUE);
+            break;
+        }
+        case WM_MOUSEMOVE:
+        {
+            static int lastMouseX = GET_X_LPARAM(lParam);
+            static int lastMouseY = GET_Y_LPARAM(lParam);
+
+            _inputState.MousePointerPosition[0] += lastMouseX - GET_X_LPARAM(lParam);
+            _inputState.MousePointerPosition[1] += lastMouseY - GET_Y_LPARAM(lParam);
+
+            lastMouseX = GET_X_LPARAM(lParam);
+            lastMouseY = GET_Y_LPARAM(lParam);
 
             break;
         }
@@ -887,12 +944,6 @@ LRESULT CALLBACK Win32Application::objectProc(
             }
             break;
         }
-        case WM_MOUSEMOVE:
-        {
-            _inputState.MousePointerPosition[0] = LOWORD(lParam);
-            _inputState.MousePointerPosition[1] = HIWORD(lParam);
-            break;
-        }
     }
     return DefWindowProc(this->_hWnd, uMsg, wParam, lParam);
 }
@@ -1014,6 +1065,12 @@ void InputState::OnMouseButtonUp(
     }
 }
 
+void InputState::SetMousePointerPosition(
+    int x,
+    int y)
+{
+}
+
 template <class TApp>
 int Application::Run(TApp &t)
 {
@@ -1022,7 +1079,7 @@ int Application::Run(TApp &t)
         [&](int w, int h) { t.Resize(w, h); },
         [&]() { t.Destroy(); });
 
-    return app->Run([&](std::chrono::nanoseconds time, const struct InputState &inputState) { return t.Tick(time, inputState); });
+    return app->Run([&](std::chrono::milliseconds time, const struct InputState &inputState) { return t.Tick(time, inputState); });
 }
 
 #endif //APPLICATION_IMPLEMENTATION

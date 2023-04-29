@@ -78,6 +78,7 @@ add_executable(bsp-tri-physics
     include/glad/glad.h
     include/glbuffer.h
     include/glshader.h
+    include/iphysicsservice.hpp
     include/stb_image.h
     include/stb_rect_pack.h
     main.cpp

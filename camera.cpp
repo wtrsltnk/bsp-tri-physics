@@ -1,26 +1,62 @@
 #include "camera.h"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <spdlog/spdlog.h>
 
 Camera::Camera()
-    : _position(glm::vec3(0.0f, 0.0f, 0.0f)),
-      _up(glm::vec3(0.0f, 0.0f, 1.0f)),
-      _rotation(glm::mat4(1.0f))
-{}
+{
+    update_target();
+}
 
-Camera::~Camera()
-{}
+Camera::~Camera() = default;
+
+void Camera::ProcessMouseMovement(
+    double delta_x,
+    double delta_y,
+    bool constraint_pitch = true)
+{
+    yaw -= delta_x * sensitivity;
+    pitch += delta_y * sensitivity;
+
+    if (constraint_pitch)
+    {
+        if (pitch > 89.0f)
+        {
+            pitch = 89.0f;
+        }
+        if (pitch < -89.0f)
+        {
+            pitch = -89.0f;
+        }
+    }
+    update_target();
+}
+
+void Camera::update_target()
+{
+    float yaw_radians = glm::radians(yaw);
+    float pitch_radians = glm::radians(pitch);
+
+    target.x = -sin(yaw_radians) * cos(pitch_radians);
+    target.y = -cos(yaw_radians) * cos(pitch_radians);
+    target.z = sin(pitch_radians);
+}
 
 glm::mat4 Camera::GetViewMatrix()
 {
-    return glm::lookAt(this->Position(), this->Target(), this->Up());
+    return glm::lookAt(this->Position(), this->Position() + glm::vec3(target), this->Up());
 }
 
 glm::vec3 Camera::Forward() const
 {
-    return glm::normalize(glm::mat3(this->_rotation)[1]);
+    return target;
+}
+
+glm::vec3 Camera::Back() const
+{
+    return -1.0f * Forward();
 }
 
 glm::vec3 Camera::Left() const
@@ -28,12 +64,18 @@ glm::vec3 Camera::Left() const
     return glm::cross(this->Up(), this->Forward());
 }
 
+glm::vec3 Camera::Right() const
+{
+    return -1.0f * Left();
+}
+
 const glm::vec3 &Camera::Up() const
 {
     return this->_up;
 }
 
-void Camera::SetUp(const glm::vec3 &up)
+void Camera::SetUp(
+    const glm::vec3 &up)
 {
     this->_up = up;
 }
@@ -43,7 +85,8 @@ const glm::vec3 &Camera::Position() const
     return this->_position;
 }
 
-void Camera::SetPosition(const glm::vec3 &pos)
+void Camera::SetPosition(
+    const glm::vec3 &pos)
 {
     this->_position = pos;
 }
@@ -53,32 +96,20 @@ glm::vec3 Camera::Target() const
     return this->Position() + this->Forward();
 }
 
-void Camera::MoveForward(float amount)
+void Camera::MoveForward(
+    float amount)
 {
     this->_position += this->Forward() * amount;
 }
 
-void Camera::MoveLeft(float amount)
+void Camera::MoveLeft(
+    float amount)
 {
     this->_position += this->Left() * amount;
 }
 
-void Camera::MoveUp(float amount)
+void Camera::MoveUp(
+    float amount)
 {
     this->_position += this->Up() * amount;
-}
-
-void Camera::RotateX(float angle)
-{
-    this->_rotation = glm::rotate(this->_rotation, angle, glm::vec3(1, 0, 0));
-}
-
-void Camera::RotateY(float angle)
-{
-    this->_rotation = glm::rotate(this->_rotation, angle, glm::vec3(0, 1, 0));
-}
-
-void Camera::RotateZ(float angle)
-{
-    this->_rotation = glm::rotate(this->_rotation, angle, glm::vec3(0, 0, 1));
 }
