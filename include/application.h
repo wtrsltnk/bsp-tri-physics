@@ -209,6 +209,7 @@ bool IsMouseButtonPushed(
 
 #include <GL/wglext.h>
 #include <windowsx.h>
+#include <sstream>
 
 #define EXAMPLE_NAME "genmap"
 
@@ -418,6 +419,8 @@ int Win32Application::Run(
     std::function<bool(std::chrono::milliseconds time, const struct InputState &inputState)> tick)
 {
     bool running = true;
+    int fps = 0;
+    long long fpsTime = 0;
 
     _inputState.PreviousState = &_previousInputState;
 
@@ -455,7 +458,21 @@ int Win32Application::Run(
 
         SetCursorPos(centerX, centerY);
 
-        running = tick(GetDiffTime(), _inputState);
+        auto time = GetDiffTime();
+
+        fpsTime += time.count();
+        fps++;
+        if (fpsTime > 1000)
+        {
+            std::stringstream ss;
+            ss << "FPS: " <<  fps;
+            SetWindowText(_hWnd, ss.str().c_str());
+
+            fps = 0;
+            fpsTime -= 1000;
+        }
+
+        running = tick(time, _inputState);
 
         _inputState.MousePointerPosition[0] = centerX - point.x;
         _inputState.MousePointerPosition[1] = centerY - point.y;
