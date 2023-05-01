@@ -6,7 +6,7 @@
 #include <iostream>
 #include <spdlog/spdlog.h>
 
-const btScalar scalef = 0.1f;
+const btScalar scalef = 0.08f;
 
 PhysicsService::PhysicsService()
 {
@@ -18,7 +18,7 @@ PhysicsService::PhysicsService()
     mSolver = new btSequentialImpulseConstraintSolver();
 
     mDynamicsWorld = new btDiscreteDynamicsWorld(mDispatcher, mBroadphase, mSolver, mCollisionConfiguration);
-    mDynamicsWorld->setGravity(btVector3(0, 0, -98.1f));
+    mDynamicsWorld->setGravity(btVector3(0, 0, -200.1f));
     mDynamicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
 }
 
@@ -31,11 +31,11 @@ void PhysicsService::Step(
 
     time += static_cast<double>(diff.count() / 1000.0);
 
-    while (time > 0)
+    while (time > (1.0 / 60.0))
     {
-        mDynamicsWorld->stepSimulation(btScalar(1.0f / 30.0f), 1, btScalar(1.0f / 60.0f));
+        mDynamicsWorld->stepSimulation(btScalar(1.0f / 60.0f), 1, btScalar(1.0f / 120.0f));
 
-        time -= (1.0 / 30.0);
+        time -= (1.0 / 60.0);
     }
 }
 
@@ -211,7 +211,7 @@ void PhysicsService::JumpCharacter(
 
     if (callback.mHaveGround)
     {
-        ApplyForce(component, direction * 20000.0f);
+        ApplyForce(component, direction * (5000.0f / scalef));
     }
 }
 
@@ -223,6 +223,7 @@ void PhysicsService::MoveCharacter(
     btVector3 move(direction.x, direction.y, 0.0f);
 
     FindGround callback;
+    callback.mRadiusThreshold = 1.0f;
     callback.mMe = _rigidBodies[component.bodyIndex];
     mDynamicsWorld->contactTest(_rigidBodies[component.bodyIndex], callback);
     bool onGround = callback.mHaveGround;
@@ -308,7 +309,6 @@ private:
     int m_debugMode = 0;
     btDiscreteDynamicsWorld *_dynamicsWorld = nullptr;
     VertexArray &_vertexAndColorBuffer;
-
 };
 
 void PhysicsService::RenderDebug(
