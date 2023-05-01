@@ -247,10 +247,10 @@ bool GenMapApp::Startup()
     {
         auto &face = _bspAsset->_faces[f];
 
-        if (face.flags != 0)
-        {
-            continue;
-        }
+//        if (face.flags != 0)
+//        {
+//            continue;
+//        }
 
         auto &vertex1 = _bspAsset->_vertices[face.firstVertex];
         auto &vertex2 = _bspAsset->_vertices[face.firstVertex + 1];
@@ -357,7 +357,7 @@ bool GenMapApp::Tick(
 
     for (auto &ball : balls)
     {
-        auto m = _physics->GetMatrix(ball);
+        auto m = glm::scale(_physics->GetMatrix(ball), glm::vec3(3.0f));
 
         _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * m);
 

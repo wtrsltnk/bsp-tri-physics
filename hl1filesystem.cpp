@@ -257,6 +257,13 @@ void FileSystem::FindRootFromFilePath(
     }
 
     auto fn = path.filename();
+    if (fn == "data")
+    {
+        SetRootAndMod(path.parent_path(), "data");
+
+        return;
+    }
+
     if (path.has_parent_path() && (fn == "maps" || fn == "models" || fn == "sprites" || fn == "sound" || fn == "gfx" || fn == "env"))
     {
         path = path.parent_path();
