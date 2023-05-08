@@ -12,6 +12,7 @@ class VertexType
 {
 public:
     glm::vec3 pos;
+    glm::vec3 col;
     glm::vec4 uvs;
 };
 
@@ -47,9 +48,18 @@ public:
         VertexType v;
         v.pos = position;
         v.uvs = _nextUvs;
+        v.col = _nextCol;
         _verts.push_back(v);
 
         _vertexCount = static_cast<GLsizei>(_verts.size());
+
+        return *this;
+    }
+
+    BufferType &col(
+        glm::vec3 const &col)
+    {
+        _nextCol = col;
 
         return *this;
     }
@@ -66,6 +76,11 @@ public:
         ShaderType &shader)
     {
         _vertexCount = static_cast<GLsizei>(_verts.size());
+
+        if (_vertexCount == 0)
+        {
+            return false;
+        }
 
         glGenVertexArrays(1, &_vertexArrayId);
         glGenBuffers(1, &_vertexBufferId);
@@ -124,6 +139,7 @@ private:
     int _vertexCount = 0;
     std::vector<VertexType> _verts;
     glm::vec4 _nextUvs;
+    glm::vec3 _nextCol = glm::vec3(1.0f, 1.0f, 1.0f);
     unsigned int _vertexArrayId = 0;
     unsigned int _vertexBufferId = 0;
 };

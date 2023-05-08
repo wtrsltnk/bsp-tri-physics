@@ -104,15 +104,18 @@ void OpenGLMessageCallback(
 
 const char *solidBlendingVertexShader = GLSL(
     in vec3 a_vertex;
+    in vec3 a_color;
     in vec4 a_texcoords;
 
     uniform mat4 u_matrix;
 
+    out vec3 f_color;
     out vec2 f_uv_tex;
     out vec2 f_uv_light;
 
     void main() {
         gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
+        f_color = a_color;
         f_uv_light = a_texcoords.xy;
         f_uv_tex = a_texcoords.zw;
     });
@@ -121,6 +124,7 @@ const char *solidBlendingFragmentShader = GLSL(
     uniform sampler2D u_tex0;
     uniform sampler2D u_tex1;
 
+    in vec3 f_color;
     in vec2 f_uv_tex;
     in vec2 f_uv_light;
 
@@ -135,24 +139,28 @@ const char *solidBlendingFragmentShader = GLSL(
         if (texel0.a < 0.2)
             discard;
         else
-            tempcolor = vec4(texel0.rgb, 1.0) * vec4(texel1.rgb, 1.0);
+            tempcolor = vec4(texel0.rgb, 1.0) * vec4(texel1.rgb, 1.0) * vec4(f_color, 1.0);
         color = tempcolor;
     });
 
 const char *skyVertexShader = GLSL(
     in vec3 a_vertex;
+    in vec3 a_color;
     in vec4 a_texcoords;
 
     uniform mat4 u_matrix;
 
+    out vec3 vcolor;
     out vec2 texCoord;
 
     void main() {
         gl_Position = u_matrix * vec4(a_vertex, 1.0);
+        vcolor = a_color;
         texCoord = a_texcoords.xy;
     });
 
 const char *skyFragmentShader = GLSL(
+    in vec3 vcolor;
     in vec2 texCoord;
 
     uniform sampler2D tex;
@@ -160,32 +168,34 @@ const char *skyFragmentShader = GLSL(
     out vec4 color;
 
     void main() {
-        color = texture(tex, texCoord);
+        color = texture(tex, texCoord) * vec4(vcolor, 1.0f);
     });
 
 const char *trailVertexShader = GLSL(
     in vec3 a_vertex;
     in vec3 a_color;
+    in vec4 a_texcoords;
 
     uniform mat4 u_matrix;
 
-    out vec3 cc;
+    out vec3 vcolor;
+    out vec2 texCoord;
 
     void main() {
         gl_Position = u_matrix * vec4(a_vertex, 1.0);
-        cc = a_color;
+        vcolor = a_color;
+        texCoord = a_texcoords.xy;
     });
 
 const char *trailFragmentShader = GLSL(
-    in vec3 cc;
+    in vec3 vcolor;
+    in vec2 texCoord;
 
     out vec4 color;
 
     void main() {
-        color = vec4(cc.xyz, 1.0);
+        color = vec4(texCoord, 1.0f, 1.0) * vec4(vcolor, 1.0f);
     });
-
-static std::tuple<size_t, size_t> mesh;
 
 bool GenMapApp::Startup()
 {
@@ -243,14 +253,17 @@ bool GenMapApp::Startup()
 
     std::vector<glm::vec3> triangles;
 
-    for (size_t f = 0; f < _bspAsset->_faces.size(); f++)
+    auto &rootModel = _bspAsset->_models[0];
+
+    // for (size_t f = 0; f < _bspAsset->_faces.size(); f++)
+    for (int f = rootModel.firstFace; f < rootModel.firstFace + rootModel.faceCount; f++)
     {
         auto &face = _bspAsset->_faces[f];
 
-//        if (face.flags != 0)
-//        {
-//            continue;
-//        }
+        // if (face.flags != 0)
+        // {
+        //     continue;
+        // }
 
         auto &vertex1 = _bspAsset->_vertices[face.firstVertex];
         auto &vertex2 = _bspAsset->_vertices[face.firstVertex + 1];
@@ -267,9 +280,14 @@ bool GenMapApp::Startup()
 
     _physics->AddStatic(triangles);
 
-    _vertexArray = new VertexArray();
-    mesh = _vertexArray->add(vertices, 36, glm::vec3(10.0f));
-    _vertexArray->upload();
+    for (int v = 0; v < 36; v++)
+    {
+        auto vindex = v * 6;
+        _vertexArray
+            .col(glm::vec3(vertices[vindex + 3], vertices[vindex + 4], vertices[vindex + 5]))
+            .vertex(glm::vec3(vertices[vindex + 0], vertices[vindex + 1], vertices[vindex + 2]));
+    }
+    _vertexArray.setup(_trailShader);
 
     _character = _physics->AddCharacter(15, 16, 40, origin);
 
@@ -353,7 +371,8 @@ bool GenMapApp::Tick(
     RenderTrail();
 
     glDisable(GL_CULL_FACE);
-    _trailShader.use();
+
+    _vertexArray.bind();
 
     for (auto &ball : balls)
     {
@@ -361,20 +380,21 @@ bool GenMapApp::Tick(
 
         _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * m);
 
-        _vertexArray->render(VertexArrayRenderModes::Triangles, std::get<0>(mesh), std::get<1>(mesh));
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //        _vertexArray.render(VertexArrayRenderModes::Triangles, std::get<0>(mesh), std::get<1>(mesh));
     }
 
     glEnable(GL_CULL_FACE);
 
-    VertexArray vertexAndColorBuffer;
+    //    VertexArray vertexAndColorBuffer;
 
-    //_physics->RenderDebug(vertexAndColorBuffer);
+    //    //_physics->RenderDebug(vertexAndColorBuffer);
 
-    vertexAndColorBuffer.upload();
+    //    vertexAndColorBuffer.upload();
 
-    glDisable(GL_DEPTH_TEST);
-    vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
-    glEnable(GL_DEPTH_TEST);
+    //    glDisable(GL_DEPTH_TEST);
+    //    vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
+    //    glEnable(GL_DEPTH_TEST);
 
     return true; // to keep running
 }
@@ -394,7 +414,7 @@ void GenMapApp::SetupSky()
     const float uv_0 = 1.0f - uv_1;
     const float size = 1.0f;
 
-    //if (renderFlag & SKY_BACK)
+    // if (renderFlag & SKY_BACK)
     _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_0, 0, 0))
         .vertex(glm::vec3(-size, size, size));
@@ -408,7 +428,7 @@ void GenMapApp::SetupSky()
         .uvs(glm::vec4(uv_1, uv_0, 0, 0))
         .vertex(glm::vec3(size, size, size));
 
-    //if (renderFlag & SKY_DOWN)
+    // if (renderFlag & SKY_DOWN)
     _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_1, 0, 0))
         .vertex(glm::vec3(-size, -size, size));
@@ -422,7 +442,7 @@ void GenMapApp::SetupSky()
         .uvs(glm::vec4(uv_0, uv_0, 0, 0))
         .vertex(glm::vec3(size, -size, size));
 
-    //if (renderFlag & SKY_FRONT)
+    // if (renderFlag & SKY_FRONT)
     _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_0, 0, 0))
         .vertex(glm::vec3(size, size, -size));
@@ -450,7 +470,7 @@ void GenMapApp::SetupSky()
         .uvs(glm::vec4(uv_1, uv_0, 0, 0))
         .vertex(glm::vec3(-size, size, size));
 
-    //if (renderFlag & SKY_RIGHT)
+    // if (renderFlag & SKY_RIGHT)
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_1, 0, 0))
         .vertex(glm::vec3(size, -size, -size));
@@ -464,7 +484,7 @@ void GenMapApp::SetupSky()
         .uvs(glm::vec4(uv_0, uv_1, 0, 0))
         .vertex(glm::vec3(size, -size, size));
 
-    //if (renderFlag & SKY_UP)
+    // if (renderFlag & SKY_UP)
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_0, 0, 0))
         .vertex(glm::vec3(-size, size, -size));
@@ -645,7 +665,7 @@ void GenMapApp::Destroy()
 
 void GenMapApp::RenderTrail()
 {
-    //glDisable(GL_DEPTH_TEST);
+    // glDisable(GL_DEPTH_TEST);
     if (_trail.size() < 3)
     {
         return;

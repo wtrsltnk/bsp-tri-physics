@@ -19,15 +19,11 @@ namespace valve
     template <class T>
     class List
     {
-        int size;
-        int count;
-        T *data;
-
     public:
         List() : size(CHUNK), data(new T[CHUNK]), count(0) {}
         virtual ~List() { this->Clear(); }
 
-        operator T *(void)const { return data; }
+        operator T *(void) const { return data; }
         const T &operator[](int i) const { return data[i]; }
         T &operator[](int i) { return data[i]; }
 
@@ -37,7 +33,7 @@ namespace valve
         {
             if (count >= size)
             {
-                //resize
+                // resize
                 T *n = new T[size + CHUNK];
                 for (int i = 0; i < size; i++)
                     n[i] = data[i];
@@ -57,6 +53,11 @@ namespace valve
             this->data = nullptr;
             this->size = this->count = 0;
         }
+
+    private:
+        int size;
+        int count;
+        T *data;
     };
 
     typedef struct sVertex
@@ -83,10 +84,15 @@ namespace valve
     class IFileSystem
     {
     public:
-        virtual std::string LocateFile(const std::string &relativeFilename) = 0;
-        virtual bool LoadFile(const std::string &filename, std::vector<byte> &data) = 0;
+        virtual std::string LocateFile(
+            const std::string &relativeFilename) = 0;
+
+        virtual bool LoadFile(
+            const std::string &filename,
+            std::vector<byte> &data) = 0;
 
         const std::filesystem::path &Root() const { return _root; }
+
         const std::string &Mod() const { return _mod; }
 
     private:
@@ -96,14 +102,17 @@ namespace valve
 
     class Asset
     {
-    protected:
-        IFileSystem *_fs;
-
     public:
-        Asset(IFileSystem *fs) : _fs(fs) {}
+        Asset(
+            IFileSystem *fs) : _fs(fs) {}
+
         virtual ~Asset() {}
 
-        virtual bool Load(const std::string &filename) = 0;
+        virtual bool Load(
+            const std::string &filename) = 0;
+
+    protected:
+        IFileSystem *_fs;
     };
 
 } // namespace valve

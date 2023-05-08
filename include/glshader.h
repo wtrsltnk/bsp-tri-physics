@@ -37,6 +37,7 @@ public:
                 "#version 150\n"
 
                 "in vec3 a_vertex;"
+                "in vec3 a_color;"
                 "in vec4 a_texcoords;"
 
                 "uniform mat4 u_matrix;"
@@ -51,7 +52,7 @@ public:
                 "    gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);"
                 "    f_uv_light = a_texcoords.xy;"
                 "    f_uv_tex = a_texcoords.zw;"
-                "    f_color = u_color;"
+                "    f_color = vec4(a_color, 1.0) * u_color;"
                 "}");
 
             std::string const fshader(
@@ -183,6 +184,12 @@ public:
             spdlog::error("failed to get attribute location for \"a_vertex\" ({})", vertexAttrib);
             return;
         }
+        auto colorAttrib = glGetAttribLocation(_shaderId, "a_color");
+        if (colorAttrib < 0)
+        {
+            spdlog::error("failed to get attribute location for \"a_color\" ({})", colorAttrib);
+            return;
+        }
         auto texcoordsAttrib = glGetAttribLocation(_shaderId, "a_texcoords");
         if (texcoordsAttrib < 0)
         {
@@ -200,12 +207,22 @@ public:
         glEnableVertexAttribArray(GLuint(vertexAttrib));
 
         glVertexAttribPointer(
+            GLuint(colorAttrib),
+            sizeof(glm::vec3) / sizeof(float),
+            GL_FLOAT,
+            GL_FALSE,
+            vertexSize,
+            reinterpret_cast<const GLvoid *>(sizeof(glm::vec3)));
+
+        glEnableVertexAttribArray(GLuint(colorAttrib));
+
+        glVertexAttribPointer(
             GLuint(texcoordsAttrib),
             sizeof(glm::vec4) / sizeof(float),
             GL_FLOAT,
             GL_FALSE,
             vertexSize,
-            reinterpret_cast<const GLvoid *>(sizeof(glm::vec3)));
+            reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3)));
 
         glEnableVertexAttribArray(GLuint(texcoordsAttrib));
 
