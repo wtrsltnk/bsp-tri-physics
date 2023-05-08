@@ -14,7 +14,7 @@ public:
     virtual ~IPhysicsService() = default;
 
     virtual void Step(
-        std::chrono::milliseconds diff) = 0;
+        std::chrono::microseconds diff) = 0;
 
     virtual PhysicsComponent AddStatic(
         const std::vector<glm::vec3> &t) = 0;

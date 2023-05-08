@@ -279,17 +279,17 @@ bool GenMapApp::Startup()
 std::vector<PhysicsComponent> balls;
 
 bool GenMapApp::Tick(
-    std::chrono::milliseconds time,
+    std::chrono::microseconds time,
     const struct InputState &inputState)
 {
     _physics->Step(time);
 
-    const float speed = 50.0f;
+    const float speed = 8.0f;
 
     if (IsMouseButtonPushed(inputState, MouseButtons::LeftButton))
     {
-        auto comp = _physics->AddCube(1.0f, glm::vec3(30.0f), _cam.Position());
-        _physics->ApplyForce(comp, glm::normalize(_cam.Forward()) * 5000.0f);
+        auto comp = _physics->AddCube(1.0f, glm::vec3(30.0f), _cam.Position() + (_cam.Forward() * 40.0f));
+        _physics->ApplyForce(comp, glm::normalize(_cam.Forward()) * 7000.0f);
         balls.push_back(comp);
     }
 

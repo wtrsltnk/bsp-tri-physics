@@ -115,7 +115,7 @@ public:
     void Destroy();
 
     bool Tick(
-        std::chrono::milliseconds time,
+        std::chrono::microseconds time,
         const struct InputState &inputState);
 
     void RenderTrail();

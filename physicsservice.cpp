@@ -18,26 +18,11 @@ PhysicsService::PhysicsService()
     mSolver = new btSequentialImpulseConstraintSolver();
 
     mDynamicsWorld = new btDiscreteDynamicsWorld(mDispatcher, mBroadphase, mSolver, mCollisionConfiguration);
-    mDynamicsWorld->setGravity(btVector3(0, 0, -200.1f));
+    mDynamicsWorld->setGravity(btVector3(0, 0, -9.81f));
     mDynamicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
 }
 
 PhysicsService::~PhysicsService() = default;
-
-void PhysicsService::Step(
-    std::chrono::milliseconds diff)
-{
-    static double time = 0;
-
-    time += static_cast<double>(diff.count() / 1000.0);
-
-    while (time > (1.0 / 60.0))
-    {
-        mDynamicsWorld->stepSimulation(btScalar(1.0f / 60.0f), 1, btScalar(1.0f / 120.0f));
-
-        time -= (1.0 / 60.0);
-    }
-}
 
 btRigidBody *CreateBody(
     btCollisionShape *shape,
@@ -201,17 +186,36 @@ btScalar FindGround::addSingleResult(
     return 0;
 }
 
+void PhysicsService::Step(
+    std::chrono::microseconds diff)
+{
+    //spdlog::info("Step({})", diff.count());
+    static long long timeInUs = 0;
+
+    timeInUs += diff.count();
+
+    while (timeInUs > (200000.0 / 60.0))
+    {
+        //spdlog::info("  timeInMs = {}", timeInUs);
+        mDynamicsWorld->stepSimulation(btScalar(1.0f / 60.0f), 1, btScalar(1.0f / 120.0f));
+
+        timeInUs -= (200000.0 / 60.0);
+    }
+    //    mDynamicsWorld->stepSimulation(static_cast<double>(diff.count()) / 100.0, 1, btScalar(1.0f / 120.0f));
+}
+
 void PhysicsService::JumpCharacter(
     const PhysicsComponent &component,
     const glm::vec3 &direction)
 {
     FindGround callback;
+    callback.mRadiusThreshold = 1.1f;
     callback.mMe = _rigidBodies[component.bodyIndex];
     mDynamicsWorld->contactTest(_rigidBodies[component.bodyIndex], callback);
 
     if (callback.mHaveGround)
     {
-        ApplyForce(component, direction * (5000.0f / scalef));
+        ApplyForce(component, direction * 18000.0f);
     }
 }
 
@@ -223,7 +227,7 @@ void PhysicsService::MoveCharacter(
     btVector3 move(direction.x, direction.y, 0.0f);
 
     FindGround callback;
-    callback.mRadiusThreshold = 1.0f;
+    callback.mRadiusThreshold = 1.1f;
     callback.mMe = _rigidBodies[component.bodyIndex];
     mDynamicsWorld->contactTest(_rigidBodies[component.bodyIndex], callback);
     bool onGround = callback.mHaveGround;

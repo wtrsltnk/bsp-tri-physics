@@ -17,7 +17,7 @@ public:
     virtual ~PhysicsService();
 
     virtual void Step(
-        std::chrono::milliseconds diff);
+        std::chrono::microseconds diff);
 
     virtual PhysicsComponent AddStatic(
         const std::vector<glm::vec3> &t);
@@ -44,7 +44,7 @@ public:
 
     virtual void MoveCharacter(
         const PhysicsComponent &component,
-        const glm::vec3& direction,
+        const glm::vec3 &direction,
         float speed);
 
     virtual void ApplyForce(
