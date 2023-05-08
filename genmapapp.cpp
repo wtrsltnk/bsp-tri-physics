@@ -282,11 +282,10 @@ bool GenMapApp::Startup()
 
     for (int v = 0; v < 36; v++)
     {
-        auto vindex = v * 6;
         _vertexArray
-            .col(glm::vec3(vertices[vindex + 3], vertices[vindex + 4], vertices[vindex + 5]))
-            .vertex(glm::vec3(vertices[vindex + 0], vertices[vindex + 1], vertices[vindex + 2]));
+            .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
     }
+
     _vertexArray.setup(_trailShader);
 
     _character = _physics->AddCharacter(15, 16, 40, origin);

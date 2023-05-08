@@ -42,6 +42,20 @@ public:
         return _vertexCount;
     }
 
+    BufferType &vertex_and_col(
+        float const *arr,
+        glm::vec3 const &scale = glm::vec3(1.0f))
+    {
+        return col(&arr[3])
+            .vertex(glm::vec3(arr[0] * scale.x, arr[1] * scale.y, arr[2] * scale.z));
+    }
+
+    BufferType &vertex(
+        float const *position)
+    {
+        return vertex(glm::vec3(position[0], position[1], position[2]));
+    }
+
     BufferType &vertex(
         glm::vec3 const &position)
     {
@@ -64,10 +78,26 @@ public:
         return *this;
     }
 
+    BufferType &col(
+        float const *col)
+    {
+        _nextCol = glm::vec3(col[0], col[1], col[2]);
+
+        return *this;
+    }
+
     BufferType &uvs(
         glm::vec4 const &uvs)
     {
         _nextUvs = uvs;
+
+        return *this;
+    }
+
+    BufferType &uvs(
+        float const *uvs)
+    {
+        _nextUvs = glm::vec4(uvs[0], uvs[1], uvs[2], uvs[3]);
 
         return *this;
     }

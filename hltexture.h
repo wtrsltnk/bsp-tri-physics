@@ -53,7 +53,7 @@ namespace valve
         void Fill(
             const Texture &from);
 
-        // expandBorder is used to puts a 1-pixel border around the copied texture so no neightbour leaking is occuring on an atlas
+        // expandBorder is used to put a 1-pixel border around the copied texture so no neightbour leaking is occuring on an atlas
         void FillAtPosition(
             const Texture &from,
             const glm::vec2 &pos,
