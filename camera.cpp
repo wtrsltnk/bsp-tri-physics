@@ -34,16 +34,6 @@ void Camera::ProcessMouseMovement(
     update_target();
 }
 
-void Camera::update_target()
-{
-    float yaw_radians = glm::radians(yaw);
-    float pitch_radians = glm::radians(pitch);
-
-    target.x = -sin(yaw_radians) * cos(pitch_radians);
-    target.y = -cos(yaw_radians) * cos(pitch_radians);
-    target.z = sin(pitch_radians);
-}
-
 glm::mat4 Camera::GetViewMatrix()
 {
     return glm::lookAt(this->Position(), this->Position() + glm::vec3(target), this->Up());
@@ -91,25 +81,12 @@ void Camera::SetPosition(
     this->_position = pos;
 }
 
-glm::vec3 Camera::Target() const
+void Camera::update_target()
 {
-    return this->Position() + this->Forward();
-}
+    float yaw_radians = glm::radians(yaw);
+    float pitch_radians = glm::radians(pitch);
 
-void Camera::MoveForward(
-    float amount)
-{
-    this->_position += this->Forward() * amount;
-}
-
-void Camera::MoveLeft(
-    float amount)
-{
-    this->_position += this->Left() * amount;
-}
-
-void Camera::MoveUp(
-    float amount)
-{
-    this->_position += this->Up() * amount;
+    target.x = -sin(yaw_radians) * cos(pitch_radians);
+    target.y = -cos(yaw_radians) * cos(pitch_radians);
+    target.z = sin(pitch_radians);
 }

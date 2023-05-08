@@ -9,8 +9,10 @@ public:
     Camera();
     virtual ~Camera();
 
-    void ProcessMouseMovement(double delta_x, double delta_y, bool constraint_pitch);
-    void update_target();
+    void ProcessMouseMovement(
+        double delta_x,
+        double delta_y,
+        bool constraint_pitch);
 
     glm::mat4 GetViewMatrix();
 
@@ -32,25 +34,16 @@ public:
     void SetPosition(
         const glm::vec3 &pos);
 
-    glm::vec3 Target() const;
-
-    void MoveForward(
-        float amount);
-
-    void MoveLeft(
-        float amount);
-
-    void MoveUp(
-        float amount);
+private:
+    glm::vec3 _position = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 _up = glm::vec3(0.0f, 0.0f, 1.0f);
 
     float sensitivity = 0.05f;
     float yaw = 0.0f;
     float pitch = 0.0f;
     glm::vec4 target;
 
-private:
-    glm::vec3 _position = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 _up = glm::vec3(0.0f, 0.0f, 1.0f);
+    void update_target();
 };
 
 #endif // CAMERA_H
