@@ -60,8 +60,6 @@ public:
         std::chrono::microseconds time,
         const struct InputState &inputState);
 
-    void RenderTrail();
-
     void RenderSky();
 
     void RenderBsp();
@@ -92,9 +90,6 @@ private:
     entt::registry _registry;
     PhysicsService *_physics = nullptr;
     PhysicsComponent _character;
-
-    unsigned int VBO;
-    std::vector<glm::vec3> _trail;
 
     static float vertices[216];
 };

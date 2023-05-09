@@ -28,6 +28,7 @@ btRigidBody *CreateBody(
     btCollisionShape *shape,
     float mass,
     const glm::vec3 &startPos,
+    const glm::vec3 &startRot,
     bool disableDeactivation)
 {
     btVector3 fallInertia(0, 0, 0);
@@ -37,8 +38,12 @@ btRigidBody *CreateBody(
         shape->calculateLocalInertia(mass, fallInertia);
     }
 
+    btQuaternion quat;
+    quat.setEulerZYX(startRot.x, startRot.y, startRot.z);
+
     btRigidBody::btRigidBodyConstructionInfo rbci(mass, nullptr, shape, fallInertia);
     rbci.m_startWorldTransform.setOrigin(btVector3(startPos.x * scalef, startPos.y * scalef, startPos.z * scalef));
+    rbci.m_startWorldTransform.setRotation(quat);
 
     auto body = new btRigidBody(rbci);
     if (disableDeactivation)
@@ -55,7 +60,7 @@ PhysicsComponent PhysicsService::AddObject(
     const glm::vec3 &startPos,
     bool disableDeactivation)
 {
-    auto body = CreateBody(shape, mass, startPos, disableDeactivation);
+    auto body = CreateBody(shape, mass, startPos, glm::vec3(0.0f), disableDeactivation);
 
     auto bodyIndex = _rigidBodies.size();
 
@@ -70,12 +75,12 @@ PhysicsComponent PhysicsService::AddObject(
 PhysicsComponent PhysicsService::AddCharacter(
     float mass,
     float radius,
-    float heigth,
+    float height,
     const glm::vec3 &startPos)
 {
-    auto shape = new btCapsuleShape(radius * scalef, heigth * scalef);
+    auto shape = new btCapsuleShape(radius * scalef, height * scalef);
 
-    auto body = CreateBody(shape, mass, startPos, true);
+    auto body = CreateBody(shape, mass, startPos, glm::vec3(0.0f, 0.0f, glm::radians(90.0f)), true);
 
     /// Make sure this object is always busy
     body->setSleepingThresholds(0.0f, 0.0f);
@@ -148,7 +153,7 @@ public:
     btRigidBody *mMe = nullptr;
     // Assign some values, in some way
     float mShapeHalfHeight = 0.0f;
-    float mRadiusThreshold = 1.0f;
+    float mRadiusThreshold = 4.0f;
     float mMaxCosGround = 0.0f;
     bool mHaveGround = false;
     btVector3 mGroundPoint;
@@ -177,7 +182,6 @@ btScalar FindGround::addSingleResult(
 
         if (fabs(r - (16 * scalef)) <= mRadiusThreshold && cosTheta < mMaxCosGround)
         {
-
             mHaveGround = true;
             mGroundPoint = cp.m_positionWorldOnB;
         }
@@ -189,14 +193,14 @@ btScalar FindGround::addSingleResult(
 void PhysicsService::Step(
     std::chrono::microseconds diff)
 {
-    //spdlog::info("Step({})", diff.count());
+    // spdlog::info("Step({})", diff.count());
     static long long timeInUs = 0;
 
     timeInUs += diff.count();
 
     while (timeInUs > (200000.0 / 60.0))
     {
-        //spdlog::info("  timeInMs = {}", timeInUs);
+        // spdlog::info("  timeInMs = {}", timeInUs);
         mDynamicsWorld->stepSimulation(btScalar(1.0f / 60.0f), 1, btScalar(1.0f / 120.0f));
 
         timeInUs -= (200000.0 / 60.0);
@@ -209,7 +213,6 @@ void PhysicsService::JumpCharacter(
     const glm::vec3 &direction)
 {
     FindGround callback;
-    callback.mRadiusThreshold = 1.1f;
     callback.mMe = _rigidBodies[component.bodyIndex];
     mDynamicsWorld->contactTest(_rigidBodies[component.bodyIndex], callback);
 
@@ -227,7 +230,6 @@ void PhysicsService::MoveCharacter(
     btVector3 move(direction.x, direction.y, 0.0f);
 
     FindGround callback;
-    callback.mRadiusThreshold = 1.1f;
     callback.mMe = _rigidBodies[component.bodyIndex];
     mDynamicsWorld->contactTest(_rigidBodies[component.bodyIndex], callback);
     bool onGround = callback.mHaveGround;

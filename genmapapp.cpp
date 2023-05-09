@@ -249,8 +249,6 @@ bool GenMapApp::Startup()
 
     _trailShader.compile(trailVertexShader, trailFragmentShader);
 
-    glGenBuffers(1, &VBO);
-
     std::vector<glm::vec3> triangles;
 
     auto &rootModel = _bspAsset->_models[0];
@@ -288,13 +286,13 @@ bool GenMapApp::Startup()
 
     _vertexArray.setup(_trailShader);
 
-    _character = _physics->AddCharacter(15, 16, 40, origin);
+    _character = _physics->AddCharacter(15, 16, 45, origin);
 
     return true;
 }
 
 std::vector<PhysicsComponent> balls;
-
+bool showPhysicsDebug = false;
 bool GenMapApp::Tick(
     std::chrono::microseconds time,
     const struct InputState &inputState)
@@ -313,6 +311,11 @@ bool GenMapApp::Tick(
     if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
     {
         _physics->JumpCharacter(_character, _cam.Up());
+    }
+
+    if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeyF8))
+    {
+        showPhysicsDebug = !showPhysicsDebug;
     }
 
     if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
@@ -367,7 +370,6 @@ bool GenMapApp::Tick(
 
     RenderSky();
     RenderBsp();
-    RenderTrail();
 
     glDisable(GL_CULL_FACE);
 
@@ -380,20 +382,23 @@ bool GenMapApp::Tick(
         _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * m);
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
-        //        _vertexArray.render(VertexArrayRenderModes::Triangles, std::get<0>(mesh), std::get<1>(mesh));
     }
 
     glEnable(GL_CULL_FACE);
 
-    //    VertexArray vertexAndColorBuffer;
+    if (showPhysicsDebug)
+    {
+        VertexArray vertexAndColorBuffer;
 
-    //    //_physics->RenderDebug(vertexAndColorBuffer);
+        _physics->RenderDebug(vertexAndColorBuffer);
 
-    //    vertexAndColorBuffer.upload();
+        vertexAndColorBuffer.upload();
 
-    //    glDisable(GL_DEPTH_TEST);
-    //    vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
-    //    glEnable(GL_DEPTH_TEST);
+        _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / 0.08f, 1.0f / 0.08f, 1.0f / 0.08f)));
+        glDisable(GL_DEPTH_TEST);
+        vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
+        glEnable(GL_DEPTH_TEST);
+    }
 
     return true; // to keep running
 }
@@ -660,32 +665,6 @@ void GenMapApp::Destroy()
         delete _bspAsset;
         _bspAsset = nullptr;
     }
-}
-
-void GenMapApp::RenderTrail()
-{
-    // glDisable(GL_DEPTH_TEST);
-    if (_trail.size() < 3)
-    {
-        return;
-    }
-
-    _trailShader.use();
-
-    _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix());
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, _trail.size() * sizeof(glm::vec3), _trail.data(), GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(sizeof(float) * 3));
-    glEnableVertexAttribArray(1);
-
-    glDrawArrays(GL_LINE_LOOP, 0, static_cast<GLsizei>(_trail.size()));
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GenMapApp::RenderSky()
