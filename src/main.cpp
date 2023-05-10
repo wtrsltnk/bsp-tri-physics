@@ -1,6 +1,6 @@
 
 #define APPLICATION_IMPLEMENTATION
-#include "include/application.h"
+#include <application.h>
 
 #include "genmapapp.h"
 

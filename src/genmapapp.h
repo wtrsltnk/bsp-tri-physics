@@ -3,14 +3,13 @@
 
 #include "camera.h"
 #include "entitycomponents.h"
-#include "hl1bspasset.h"
-#include "hl1filesystem.h"
-#include "include/glbuffer.h"
-#include "include/glshader.h"
 #include "physicsservice.hpp"
+#include "valve/bsp/hl1bspasset.h"
+#include "valve/hl1filesystem.h"
 
 #include <chrono>
 #include <entt/entt.hpp>
+#include <glbuffer.h>
 #include <glm/glm.hpp>
 #include <glshader.h>
 #include <map>
@@ -25,6 +24,25 @@ public:
     GLuint textureIndex;
     GLuint lightmapIndex;
     int flags;
+};
+
+class AssetManager
+{
+public:
+    FileSystem _fs;
+
+    valve::Asset *LoadAsset(
+        const std::string &name);
+
+    template <typename T>
+    T *LoadAsset(
+        const std::string &name)
+    {
+        return reinterpret_cast<T *>(LoadAsset(name));
+    }
+
+private:
+    std::map<std::string, std::unique_ptr<valve::Asset>> _loadedAssets;
 };
 
 class GenMapApp
@@ -51,6 +69,8 @@ public:
 
     void SetupBsp();
 
+    glm::vec3 SetupEntities();
+
     void Resize(
         int width,
         int height);
@@ -70,7 +90,7 @@ public:
         const glm::mat4 &matrix);
 
 private:
-    FileSystem _fs;
+    AssetManager _assets;
     std::string _map;
     valve::hl1::BspAsset *_bspAsset = nullptr;
     glm::mat4 _projectionMatrix = glm::mat4(1.0f);

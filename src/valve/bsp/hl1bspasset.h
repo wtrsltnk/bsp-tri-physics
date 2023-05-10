@@ -1,9 +1,9 @@
 #ifndef _HL1BSPASSET_H_
 #define _HL1BSPASSET_H_
 
+#include "../hltexture.h"
 #include "hl1bsptypes.h"
 #include "hl1wadasset.h"
-#include "hltexture.h"
 
 #include <set>
 #include <string>

@@ -1,10 +1,10 @@
 #include "genmapapp.h"
-#include <glad/glad.h>
 
-#include "include/application.h"
-
+#include "valve/mdl/hl1mdlasset.h"
+#include <application.h>
 #include <filesystem>
 #include <fstream>
+#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
@@ -13,6 +13,46 @@
 #include <stb_image.h>
 
 #define GLSL(src) "#version 330 core\n" #src
+
+inline bool ends_with(
+    std::string const &value,
+    std::string const &ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+valve::Asset *AssetManager::LoadAsset(
+    const std::string &assetName)
+{
+    auto found = _loadedAssets.find(assetName);
+
+    if (found != _loadedAssets.end())
+    {
+        return found->second.get();
+    }
+
+    valve::Asset *asset = nullptr;
+
+    if (ends_with(assetName, ".bsp"))
+    {
+        asset = new valve::hl1::BspAsset(&_fs);
+    }
+
+    if (ends_with(assetName, ".mdl"))
+    {
+        asset = new valve::hl1::MdlAsset(&_fs);
+    }
+
+    if (asset != nullptr && asset->Load(assetName))
+    {
+        _loadedAssets.insert(std::make_pair(assetName, asset));
+
+        return asset;
+    }
+
+    return nullptr;
+}
 
 template <class T>
 inline std::istream &operator>>(
@@ -217,43 +257,44 @@ bool GenMapApp::Startup()
 
     glClearColor(0.0f, 0.45f, 0.7f, 1.0f);
 
-    spdlog::info("{} @ {}", _fs.Mod(), _fs.Root().generic_string());
+    spdlog::info("{} @ {}", _assets._fs.Mod(), _assets._fs.Root().generic_string());
 
-    _bspAsset = new valve::hl1::BspAsset(&_fs);
-    if (_bspAsset->Load(_map))
+    _bspAsset = _assets.LoadAsset<valve::hl1::BspAsset>(_map);
+
+    if (_bspAsset == nullptr)
     {
-        SetupBsp();
+        return false;
     }
 
-    auto info_player_start = _bspAsset->FindEntityByClassname("info_player_start");
+    SetupBsp();
 
-    glm::vec3 angles(0.0f);
-    glm::vec3 origin(0.0f);
-    if (info_player_start != nullptr)
-    {
-        std::istringstream(info_player_start->keyvalues["angles"]) >> (angles.x) >> (angles.y) >> (angles.z);
-        //        _cam.RotateX(angles.x);
-        //        _cam.RotateY(angles.y);
-        //        _cam.RotateZ(angles.z);
-        _cam.ProcessMouseMovement(angles.x, angles.y, true);
+    _normalBlendingShader.compileDefaultShader();
+    _solidBlendingShader.compile(solidBlendingVertexShader, solidBlendingFragmentShader);
 
-        std::istringstream(info_player_start->keyvalues["origin"]) >> (origin.x) >> (origin.y) >> (origin.z);
-        _cam.SetPosition(origin);
-    }
+    _vertexBuffer
+        .setup(_normalBlendingShader);
 
     SetupSky();
 
-    _registry.sort<RenderComponent>([](const RenderComponent &lhs, const RenderComponent &rhs) {
-        return lhs.Mode < rhs.Mode;
-    });
+    _skyShader.compile(skyVertexShader, skyFragmentShader);
+    _skyVertexBuffer.setup(_skyShader);
+
+    auto origin = SetupEntities();
 
     _trailShader.compile(trailVertexShader, trailFragmentShader);
+
+    for (int v = 0; v < 36; v++)
+    {
+        _vertexArray
+            .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
+    }
+
+    _vertexArray.setup(_trailShader);
 
     std::vector<glm::vec3> triangles;
 
     auto &rootModel = _bspAsset->_models[0];
 
-    // for (size_t f = 0; f < _bspAsset->_faces.size(); f++)
     for (int f = rootModel.firstFace; f < rootModel.firstFace + rootModel.faceCount; f++)
     {
         auto &face = _bspAsset->_faces[f];
@@ -278,14 +319,6 @@ bool GenMapApp::Startup()
 
     _physics->AddStatic(triangles);
 
-    for (int v = 0; v < 36; v++)
-    {
-        _vertexArray
-            .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
-    }
-
-    _vertexArray.setup(_trailShader);
-
     _character = _physics->AddCharacter(15, 16, 45, origin);
 
     return true;
@@ -293,6 +326,7 @@ bool GenMapApp::Startup()
 
 std::vector<PhysicsComponent> balls;
 bool showPhysicsDebug = false;
+
 bool GenMapApp::Tick(
     std::chrono::microseconds time,
     const struct InputState &inputState)
@@ -407,7 +441,7 @@ void GenMapApp::SetFilename(
     const char *root,
     const char *map)
 {
-    _fs.FindRootFromFilePath(root);
+    _assets._fs.FindRootFromFilePath(root);
     _map = map;
 }
 
@@ -501,16 +535,10 @@ void GenMapApp::SetupSky()
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_1, 0, 0))
         .vertex(glm::vec3(size, size, -size));
-
-    _skyShader.compile(skyVertexShader, skyFragmentShader);
-    _skyVertexBuffer.setup(_skyShader);
 }
 
 void GenMapApp::SetupBsp()
 {
-    _normalBlendingShader.compileDefaultShader();
-    _solidBlendingShader.compile(solidBlendingVertexShader, solidBlendingFragmentShader);
-
     _lightmapIndices = std::vector<GLuint>(_bspAsset->_lightMaps.size());
     glActiveTexture(GL_TEXTURE1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -531,6 +559,7 @@ void GenMapApp::SetupBsp()
         auto &face = _bspAsset->_faces[f];
 
         FaceType ft;
+
         ft.flags = face.flags;
         ft.firstVertex = 0;
         ft.vertexCount = 0;
@@ -557,9 +586,16 @@ void GenMapApp::SetupBsp()
         _faces.push_back(ft);
     }
 
-    _vertexBuffer
-        .setup(_normalBlendingShader);
+    for (int i = 0; i < 6; i++)
+    {
+        _skyTextureIndices[i] = UploadToGl(_bspAsset->_skytextures[i]);
+    }
 
+    spdlog::debug("loaded {0} vertices", _vertexBuffer.vertexCount());
+}
+
+glm::vec3 GenMapApp::SetupEntities()
+{
     for (auto &bspEntity : _bspAsset->_entities)
     {
         const auto entity = _registry.create();
@@ -586,7 +622,7 @@ void GenMapApp::SetupBsp()
             _cam.SetPosition(glm::vec3(x, y, z));
         }
 
-        if (bspEntity.keyvalues.count("model") != 0 && bspEntity.classname.rfind("func_", 0) != 0)
+        if (bspEntity.keyvalues.count("model") != 0 && bspEntity.classname.rfind("func_", 0) != 0 && bspEntity.classname.rfind("hostage_entity", 0) != 0)
         {
             ModelComponent mc = {0};
 
@@ -600,7 +636,16 @@ void GenMapApp::SetupBsp()
             }
             else
             {
-                // todo, this probably is a mdl or spr file
+                auto asset = _assets.LoadAsset(bspEntity.keyvalues["model"]);
+
+                if (asset != nullptr)
+                {
+                    StudioComponent sc = {
+                        .AssetId = asset->Id(),
+                    };
+
+                    _registry.assign<StudioComponent>(entity, sc);
+                }
             }
         }
 
@@ -641,12 +686,28 @@ void GenMapApp::SetupBsp()
         }
     }
 
-    for (int i = 0; i < 6; i++)
+    auto info_player_start = _bspAsset->FindEntityByClassname("info_player_start");
+
+    glm::vec3 angles(0.0f);
+    glm::vec3 origin(0.0f);
+
+    if (info_player_start != nullptr)
     {
-        _skyTextureIndices[i] = UploadToGl(_bspAsset->_skytextures[i]);
+        std::istringstream(info_player_start->keyvalues["angles"]) >> (angles.x) >> (angles.y) >> (angles.z);
+        //        _cam.RotateX(angles.x);
+        //        _cam.RotateY(angles.y);
+        //        _cam.RotateZ(angles.z);
+        _cam.ProcessMouseMovement(angles.x, angles.y, true);
+
+        std::istringstream(info_player_start->keyvalues["origin"]) >> (origin.x) >> (origin.y) >> (origin.z);
+        _cam.SetPosition(origin);
     }
 
-    spdlog::debug("loaded {0} vertices", _vertexBuffer.vertexCount());
+    _registry.sort<RenderComponent>([](const RenderComponent &lhs, const RenderComponent &rhs) {
+        return lhs.Mode < rhs.Mode;
+    });
+
+    return origin;
 }
 
 void GenMapApp::Resize(
@@ -724,11 +785,7 @@ void GenMapApp::RenderModelsByRenderMode(
 
     if (mode == RenderModes::NormalBlending)
     {
-        shader.setupColor(glm::vec4(
-            1.0f,
-            1.0f,
-            1.0f,
-            1.0f));
+        shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
     for (auto entity : view)
@@ -742,11 +799,8 @@ void GenMapApp::RenderModelsByRenderMode(
 
         if (mode == RenderModes::TextureBlending || mode == RenderModes::SolidBlending)
         {
-            shader.setupColor(glm::vec4(
-                1.0f,
-                1.0f,
-                1.0f,
-                float(renderComponent.Amount) / 255.0f));
+            shader.setupColor(
+                glm::vec4(1.0f, 1.0f, 1.0f, float(renderComponent.Amount) / 255.0f));
         }
 
         auto modelComponent = _registry.get<ModelComponent>(entity);

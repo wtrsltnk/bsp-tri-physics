@@ -11,6 +11,27 @@
 namespace valve
 {
 
+    namespace hl1
+    {
+        /* PAK */
+        typedef struct sPAKLump
+        {
+            char name[56];
+            int filepos;
+            int filelen;
+
+        } tPAKLump;
+
+        typedef struct sPAKHeader
+        {
+            char signature[4];
+            int lumpsOffset;
+            int lumpsSize;
+
+        } tPAKHeader;
+
+    } // namespace hl1
+
     typedef unsigned char byte;
     typedef byte *byteptr;
 
@@ -104,15 +125,24 @@ namespace valve
     {
     public:
         Asset(
-            IFileSystem *fs) : _fs(fs) {}
+            IFileSystem *fs) : _fs(fs)
+        {
+            static long idCounter = 0;
+            _id = idCounter++;
+        }
 
         virtual ~Asset() {}
 
         virtual bool Load(
             const std::string &filename) = 0;
 
+        long Id() const { return _id; }
+
     protected:
         IFileSystem *_fs;
+
+    private:
+        long _id;
     };
 
 } // namespace valve

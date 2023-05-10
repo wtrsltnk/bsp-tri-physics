@@ -1,7 +1,7 @@
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
-#include "hl1bsptypes.h"
+#include "hltypes.h"
 
 #include <filesystem>
 #include <string>

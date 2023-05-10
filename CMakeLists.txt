@@ -58,21 +58,6 @@ if (bullet3_ADDED)
 endif()
 
 add_executable(bsp-tri-physics
-    camera.cpp
-    camera.h
-    entitycomponents.h
-    genmapapp.cpp
-    genmapapp.h
-    hl1bspasset.cpp
-    hl1bspasset.h
-    hl1bsptypes.h
-    hl1filesystem.cpp
-    hl1filesystem.h
-    hl1wadasset.cpp
-    hl1wadasset.h
-    hltexture.cpp
-    hltexture.h
-    hltypes.h
     include/application.h
     include/glad.c
     include/glad/glad.h
@@ -81,12 +66,32 @@ add_executable(bsp-tri-physics
     include/iphysicsservice.hpp
     include/stb_image.h
     include/stb_rect_pack.h
-    main.cpp
-    physicsservice.cpp
-    physicsservice.hpp
-    stb_image.cpp
-    stb_rect_pack.cpp
-    vertexarray.cpp
+    src/camera.cpp
+    src/camera.h
+    src/entitycomponents.h
+    src/genmapapp.cpp
+    src/genmapapp.h
+    src/main.cpp
+    src/physicsservice.cpp
+    src/physicsservice.hpp
+    src/stb_image.cpp
+    src/stb_rect_pack.cpp
+    src/valve/bsp/hl1bspasset.cpp
+    src/valve/bsp/hl1bspasset.h
+    src/valve/bsp/hl1bsptypes.h
+    src/valve/bsp/hl1wadasset.cpp
+    src/valve/bsp/hl1wadasset.h
+    src/valve/hl1filesystem.cpp
+    src/valve/hl1filesystem.h
+    src/valve/hltexture.cpp
+    src/valve/hltexture.h
+    src/valve/hltypes.h
+    src/valve/mdl/hl1mdlasset.cpp
+    src/valve/mdl/hl1mdlasset.h
+    src/valve/mdl/hl1mdlinstance.cpp
+    src/valve/mdl/hl1mdlinstance.h
+    src/valve/mdl/hl1mdltypes.h
+    src/vertexarray.cpp
 )
 
 target_sources(bsp-tri-physics
@@ -115,7 +120,7 @@ target_link_libraries(bsp-tri-physics
 
 target_compile_features(bsp-tri-physics
     PRIVATE
-        cxx_std_17
+        cxx_std_20
         cxx_auto_type
         cxx_nullptr
         cxx_range_for
