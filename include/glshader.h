@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#define GLSL(src) "#version 330 core\n" #src
+
 class ShaderType
 {
 public:
@@ -33,47 +35,42 @@ public:
 
         if (defaultShader == 0)
         {
-            std::string const vshader(
-                "#version 150\n"
+            std::string const vshader(GLSL(
+                in vec3 a_vertex;
+                in vec3 a_color;
+                in vec4 a_texcoords;
 
-                "in vec3 a_vertex;"
-                "in vec3 a_color;"
-                "in vec4 a_texcoords;"
+                uniform mat4 u_matrix;
+                uniform vec4 u_color;
 
-                "uniform mat4 u_matrix;"
-                "uniform vec4 u_color;"
+                out vec2 v_uv_tex;
+                out vec2 v_uv_light;
+                out vec4 v_color;
 
-                "out vec2 f_uv_tex;"
-                "out vec2 f_uv_light;"
-                "out vec4 f_color;"
+                void main() {
+                    gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
+                    v_uv_light = a_texcoords.xy;
+                    v_uv_tex = a_texcoords.zw;
+                    v_color = vec4(a_color, 1.0) * u_color;
+                }));
 
-                "void main()"
-                "{"
-                "    gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);"
-                "    f_uv_light = a_texcoords.xy;"
-                "    f_uv_tex = a_texcoords.zw;"
-                "    f_color = vec4(a_color, 1.0) * u_color;"
-                "}");
+            std::string const fshader(GLSL(
+                uniform sampler2D u_tex0;
+                uniform sampler2D u_tex1;
 
-            std::string const fshader(
-                "#version 150\n"
+                in vec2 v_uv_tex;
+                in vec2 v_uv_light;
+                in vec4 v_color;
 
-                "uniform sampler2D u_tex0;"
-                "uniform sampler2D u_tex1;"
+                out vec4 color;
 
-                "in vec2 f_uv_tex;"
-                "in vec2 f_uv_light;"
-                "in vec4 f_color;"
-
-                "out vec4 color;"
-
-                "void main()"
-                "{"
-                "    vec4 texel0, texel1;"
-                "    texel0 = texture2D(u_tex0, f_uv_tex);"
-                "    texel1 = texture2D(u_tex1, f_uv_light);"
-                "    color = texel0 * texel1 * f_color;"
-                "}");
+                void main() {
+                    vec4 texel0;
+                    vec4 texel1;
+                    texel0 = texture2D(u_tex0, v_uv_tex);
+                    texel1 = texture2D(u_tex1, v_uv_light);
+                    color = texel0 * texel1 * v_color;
+                }));
 
             if (compile(vshader, fshader))
             {
@@ -174,7 +171,8 @@ public:
     }
 
     void setupAttributes(
-        GLsizei vertexSize) const
+        GLsizei vertexSize,
+        bool includeBone = false) const
     {
         glUseProgram(_shaderId);
 
@@ -182,18 +180,6 @@ public:
         if (vertexAttrib < 0)
         {
             spdlog::error("failed to get attribute location for \"a_vertex\" ({})", vertexAttrib);
-            return;
-        }
-        auto colorAttrib = glGetAttribLocation(_shaderId, "a_color");
-        if (colorAttrib < 0)
-        {
-            spdlog::error("failed to get attribute location for \"a_color\" ({})", colorAttrib);
-            return;
-        }
-        auto texcoordsAttrib = glGetAttribLocation(_shaderId, "a_texcoords");
-        if (texcoordsAttrib < 0)
-        {
-            spdlog::error("failed to get attribute location for \"a_texcoords\" ({})", texcoordsAttrib);
             return;
         }
 
@@ -206,6 +192,13 @@ public:
 
         glEnableVertexAttribArray(GLuint(vertexAttrib));
 
+        auto colorAttrib = glGetAttribLocation(_shaderId, "a_color");
+        if (colorAttrib < 0)
+        {
+            spdlog::error("failed to get attribute location for \"a_color\" ({})", colorAttrib);
+            return;
+        }
+
         glVertexAttribPointer(
             GLuint(colorAttrib),
             sizeof(glm::vec3) / sizeof(float),
@@ -216,6 +209,13 @@ public:
 
         glEnableVertexAttribArray(GLuint(colorAttrib));
 
+        auto texcoordsAttrib = glGetAttribLocation(_shaderId, "a_texcoords");
+        if (texcoordsAttrib < 0)
+        {
+            spdlog::error("failed to get attribute location for \"a_texcoords\" ({})", texcoordsAttrib);
+            return;
+        }
+
         glVertexAttribPointer(
             GLuint(texcoordsAttrib),
             sizeof(glm::vec4) / sizeof(float),
@@ -225,6 +225,26 @@ public:
             reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3)));
 
         glEnableVertexAttribArray(GLuint(texcoordsAttrib));
+
+        if (includeBone)
+        {
+            auto boneAttrib = glGetAttribLocation(_shaderId, "a_bone");
+            if (boneAttrib < 0)
+            {
+                spdlog::error("failed to get attribute location for \"a_bone\" ({})", boneAttrib);
+                return;
+            }
+
+            glVertexAttribPointer(
+                GLuint(boneAttrib),
+                1,
+                GL_INT,
+                GL_FALSE,
+                vertexSize,
+                reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3) + sizeof(glm::vec4)));
+
+            glEnableVertexAttribArray(GLuint(boneAttrib));
+        }
 
         auto textLocation = glGetUniformLocation(_shaderId, "u_tex0");
         auto ligtmapLocation = glGetUniformLocation(_shaderId, "u_tex1");

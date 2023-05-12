@@ -12,6 +12,7 @@
 #include <glbuffer.h>
 #include <glm/glm.hpp>
 #include <glshader.h>
+#include <irenderer.hpp>
 #include <map>
 #include <string>
 #include <vector>
@@ -41,6 +42,16 @@ public:
         return reinterpret_cast<T *>(LoadAsset(name));
     }
 
+    valve::Asset *GetAsset(
+        long id);
+
+    template <typename T>
+    T *GetAsset(
+        long id)
+    {
+        return reinterpret_cast<T *>(GetAsset(id));
+    }
+
 private:
     std::map<std::string, std::unique_ptr<valve::Asset>> _loadedAssets;
 };
@@ -65,20 +76,22 @@ public:
 
     bool Startup();
 
-    void SetupSky();
-
-    void SetupBsp();
-
-    glm::vec3 SetupEntities();
-
     void Resize(
         int width,
         int height);
+
     void Destroy();
 
     bool Tick(
         std::chrono::microseconds time,
         const struct InputState &inputState);
+
+protected:
+    void SetupSky();
+
+    void SetupBsp();
+
+    glm::vec3 SetupEntities();
 
     void RenderSky();
 
@@ -90,6 +103,7 @@ public:
         const glm::mat4 &matrix);
 
 private:
+    std::unique_ptr<IRenderer> _renderer;
     AssetManager _assets;
     std::string _map;
     valve::hl1::BspAsset *_bspAsset = nullptr;
@@ -98,6 +112,7 @@ private:
     ShaderType _skyShader;
     BufferType _skyVertexBuffer;
     BufferType _vertexArray;
+    BufferType _studioVertexArray;
     GLuint _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
     ShaderType _normalBlendingShader;
     ShaderType _solidBlendingShader;

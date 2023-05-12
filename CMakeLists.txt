@@ -64,6 +64,7 @@ add_executable(bsp-tri-physics
     include/glbuffer.h
     include/glshader.h
     include/iphysicsservice.hpp
+    include/irenderer.hpp
     include/stb_image.h
     include/stb_rect_pack.h
     src/camera.cpp
@@ -74,6 +75,8 @@ add_executable(bsp-tri-physics
     src/main.cpp
     src/physicsservice.cpp
     src/physicsservice.hpp
+    src/renderers/opengl/openglrenderer.cpp
+    src/renderers/opengl/openglrenderer.hpp
     src/stb_image.cpp
     src/stb_rect_pack.cpp
     src/valve/bsp/hl1bspasset.cpp

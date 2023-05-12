@@ -14,6 +14,7 @@ public:
     glm::vec3 pos;
     glm::vec3 col;
     glm::vec4 uvs;
+    int bone;
 };
 
 class BufferType
@@ -60,9 +61,12 @@ public:
         glm::vec3 const &position)
     {
         VertexType v;
+
         v.pos = position;
         v.uvs = _nextUvs;
         v.col = _nextCol;
+        v.bone = _nextBone;
+
         _verts.push_back(v);
 
         _vertexCount = static_cast<GLsizei>(_verts.size());
@@ -95,6 +99,14 @@ public:
     }
 
     BufferType &uvs(
+        glm::vec2 const uvs[2])
+    {
+        _nextUvs = glm::vec4(uvs[0].x, uvs[0].y, uvs[1].x, uvs[1].y);
+
+        return *this;
+    }
+
+    BufferType &uvs(
         float const *uvs)
     {
         _nextUvs = glm::vec4(uvs[0], uvs[1], uvs[2], uvs[3]);
@@ -102,7 +114,15 @@ public:
         return *this;
     }
 
-    bool setup(
+    BufferType &bone(
+        int bone)
+    {
+        _nextBone = bone;
+
+        return *this;
+    }
+
+    bool upload(
         ShaderType &shader)
     {
         _vertexCount = static_cast<GLsizei>(_verts.size());
@@ -170,6 +190,7 @@ private:
     std::vector<VertexType> _verts;
     glm::vec4 _nextUvs;
     glm::vec3 _nextCol = glm::vec3(1.0f, 1.0f, 1.0f);
+    int _nextBone = 0;
     unsigned int _vertexArrayId = 0;
     unsigned int _vertexBufferId = 0;
 };

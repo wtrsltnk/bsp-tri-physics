@@ -9,13 +9,7 @@ MdlAsset::MdlAsset(
     : Asset(fs)
 {}
 
-MdlAsset::~MdlAsset()
-{
-    for (auto &t : _textures)
-        delete t;
-    for (auto &t : _lightmaps)
-        delete t;
-}
+MdlAsset::~MdlAsset() = default;
 
 bool MdlAsset::Load(
     const std::string &filename)

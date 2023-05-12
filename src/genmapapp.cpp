@@ -1,58 +1,27 @@
 #include "genmapapp.h"
 
+#include "renderers/opengl/openglrenderer.hpp"
 #include "valve/mdl/hl1mdlasset.h"
 #include <application.h>
 #include <filesystem>
 #include <fstream>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <stb_image.h>
 
-#define GLSL(src) "#version 330 core\n" #src
+void EnableOpenGlDebug();
 
-inline bool ends_with(
-    std::string const &value,
-    std::string const &ending)
-{
-    if (ending.size() > value.size()) return false;
-    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
-valve::Asset *AssetManager::LoadAsset(
-    const std::string &assetName)
-{
-    auto found = _loadedAssets.find(assetName);
-
-    if (found != _loadedAssets.end())
-    {
-        return found->second.get();
-    }
-
-    valve::Asset *asset = nullptr;
-
-    if (ends_with(assetName, ".bsp"))
-    {
-        asset = new valve::hl1::BspAsset(&_fs);
-    }
-
-    if (ends_with(assetName, ".mdl"))
-    {
-        asset = new valve::hl1::MdlAsset(&_fs);
-    }
-
-    if (asset != nullptr && asset->Load(assetName))
-    {
-        _loadedAssets.insert(std::make_pair(assetName, asset));
-
-        return asset;
-    }
-
-    return nullptr;
-}
+extern const char *solidBlendingVertexShader;
+extern const char *solidBlendingFragmentShader;
+extern const char *skyVertexShader;
+extern const char *skyFragmentShader;
+extern const char *trailVertexShader;
+extern const char *trailFragmentShader;
 
 template <class T>
 inline std::istream &operator>>(
@@ -68,192 +37,14 @@ inline std::istream &operator>>(
     return str;
 }
 
-unsigned int UploadToGl(
-    valve::Texture *texture)
-{
-    GLuint format = GL_RGB;
-    GLuint glIndex = 0;
-
-    switch (texture->Bpp())
-    {
-        case 3:
-            format = GL_RGB;
-            break;
-        case 4:
-            format = GL_RGBA;
-            break;
-    }
-
-    glGenTextures(1, &glIndex);
-    glBindTexture(GL_TEXTURE_2D, glIndex);
-
-    if (texture->Repeat())
-    {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    }
-    else
-    {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    }
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, format, texture->Width(), texture->Height(), 0, format, GL_UNSIGNED_BYTE, texture->Data());
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    return glIndex;
-}
-
-void OpenGLMessageCallback(
-    unsigned source,
-    unsigned type,
-    unsigned id,
-    unsigned severity,
-    int length,
-    const char *message,
-    const void *userParam)
-{
-    (void)source;
-    (void)type;
-    (void)id;
-    (void)length;
-    (void)userParam;
-
-    switch (severity)
-    {
-        case GL_DEBUG_SEVERITY_HIGH:
-            spdlog::critical("{} - {}", source, message);
-            return;
-        case GL_DEBUG_SEVERITY_MEDIUM:
-            spdlog::error("{} - {}", source, message);
-            return;
-        case GL_DEBUG_SEVERITY_LOW:
-            spdlog::warn("{} - {}", source, message);
-            return;
-        case GL_DEBUG_SEVERITY_NOTIFICATION:
-            spdlog::trace("{} - {}", source, message);
-            return;
-    }
-
-    spdlog::debug("Unknown severity level!");
-    spdlog::debug(message);
-}
-
-const char *solidBlendingVertexShader = GLSL(
-    in vec3 a_vertex;
-    in vec3 a_color;
-    in vec4 a_texcoords;
-
-    uniform mat4 u_matrix;
-
-    out vec3 f_color;
-    out vec2 f_uv_tex;
-    out vec2 f_uv_light;
-
-    void main() {
-        gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
-        f_color = a_color;
-        f_uv_light = a_texcoords.xy;
-        f_uv_tex = a_texcoords.zw;
-    });
-
-const char *solidBlendingFragmentShader = GLSL(
-    uniform sampler2D u_tex0;
-    uniform sampler2D u_tex1;
-
-    in vec3 f_color;
-    in vec2 f_uv_tex;
-    in vec2 f_uv_light;
-
-    out vec4 color;
-
-    void main() {
-        vec4 texel0;
-        vec4 texel1;
-        texel0 = texture2D(u_tex0, f_uv_tex);
-        texel1 = texture2D(u_tex1, f_uv_light);
-        vec4 tempcolor = texel0 * texel1;
-        if (texel0.a < 0.2)
-            discard;
-        else
-            tempcolor = vec4(texel0.rgb, 1.0) * vec4(texel1.rgb, 1.0) * vec4(f_color, 1.0);
-        color = tempcolor;
-    });
-
-const char *skyVertexShader = GLSL(
-    in vec3 a_vertex;
-    in vec3 a_color;
-    in vec4 a_texcoords;
-
-    uniform mat4 u_matrix;
-
-    out vec3 vcolor;
-    out vec2 texCoord;
-
-    void main() {
-        gl_Position = u_matrix * vec4(a_vertex, 1.0);
-        vcolor = a_color;
-        texCoord = a_texcoords.xy;
-    });
-
-const char *skyFragmentShader = GLSL(
-    in vec3 vcolor;
-    in vec2 texCoord;
-
-    uniform sampler2D tex;
-
-    out vec4 color;
-
-    void main() {
-        color = texture(tex, texCoord) * vec4(vcolor, 1.0f);
-    });
-
-const char *trailVertexShader = GLSL(
-    in vec3 a_vertex;
-    in vec3 a_color;
-    in vec4 a_texcoords;
-
-    uniform mat4 u_matrix;
-
-    out vec3 vcolor;
-    out vec2 texCoord;
-
-    void main() {
-        gl_Position = u_matrix * vec4(a_vertex, 1.0);
-        vcolor = a_color;
-        texCoord = a_texcoords.xy;
-    });
-
-const char *trailFragmentShader = GLSL(
-    in vec3 vcolor;
-    in vec2 texCoord;
-
-    out vec4 color;
-
-    void main() {
-        color = vec4(texCoord, 1.0f, 1.0) * vec4(vcolor, 1.0f);
-    });
-
 bool GenMapApp::Startup()
 {
+    _renderer = std::make_unique<OpenGlRenderer>();
     _physics = new PhysicsService();
 
     spdlog::debug("Startup()");
 
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(OpenGLMessageCallback, nullptr);
-
-    glDebugMessageControl(
-        GL_DONT_CARE,
-        GL_DONT_CARE,
-        GL_DEBUG_SEVERITY_NOTIFICATION,
-        0,
-        NULL,
-        GL_FALSE);
+    EnableOpenGlDebug();
 
     glClearColor(0.0f, 0.45f, 0.7f, 1.0f);
 
@@ -268,18 +59,19 @@ bool GenMapApp::Startup()
 
     SetupBsp();
 
-    _normalBlendingShader.compileDefaultShader();
     _solidBlendingShader.compile(solidBlendingVertexShader, solidBlendingFragmentShader);
 
-    _vertexBuffer
-        .setup(_normalBlendingShader);
+    _normalBlendingShader.compileDefaultShader();
+    _vertexBuffer.upload(_normalBlendingShader);
 
     SetupSky();
 
     _skyShader.compile(skyVertexShader, skyFragmentShader);
-    _skyVertexBuffer.setup(_skyShader);
+    _skyVertexBuffer.upload(_skyShader);
 
     auto origin = SetupEntities();
+
+    _studioVertexArray.upload(_normalBlendingShader);
 
     _trailShader.compile(trailVertexShader, trailFragmentShader);
 
@@ -289,7 +81,7 @@ bool GenMapApp::Startup()
             .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
     }
 
-    _vertexArray.setup(_trailShader);
+    _vertexArray.upload(_trailShader);
 
     std::vector<glm::vec3> triangles;
 
@@ -324,7 +116,6 @@ bool GenMapApp::Startup()
     return true;
 }
 
-std::vector<PhysicsComponent> balls;
 bool showPhysicsDebug = false;
 
 bool GenMapApp::Tick(
@@ -337,9 +128,14 @@ bool GenMapApp::Tick(
 
     if (IsMouseButtonPushed(inputState, MouseButtons::LeftButton))
     {
+        const auto entity = _registry.create();
+
         auto comp = _physics->AddCube(1.0f, glm::vec3(30.0f), _cam.Position() + (_cam.Forward() * 40.0f));
+
         _physics->ApplyForce(comp, glm::normalize(_cam.Forward()) * 7000.0f);
-        balls.push_back(comp);
+
+        _registry.assign<PhysicsComponent>(entity, comp);
+        _registry.assign<BallComponent>(entity, 0);
     }
 
     if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
@@ -409,9 +205,13 @@ bool GenMapApp::Tick(
 
     _vertexArray.bind();
 
-    for (auto &ball : balls)
+    auto view = _registry.view<PhysicsComponent, BallComponent>();
+
+    for (auto &entity : view)
     {
-        auto m = glm::scale(_physics->GetMatrix(ball), glm::vec3(3.0f));
+        auto physicsComponent = _registry.get<PhysicsComponent>(entity);
+
+        auto m = glm::scale(_physics->GetMatrix(physicsComponent), glm::vec3(3.0f));
 
         _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * m);
 
@@ -447,6 +247,12 @@ void GenMapApp::SetFilename(
 
 void GenMapApp::SetupSky()
 {
+    for (int i = 0; i < 6; i++)
+    {
+        auto &tex = _bspAsset->_skytextures[i];
+        _skyTextureIndices[i] = _renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data());
+    }
+
     // here we make up for the half of pixel to get the sky textures really stitched together because clamping is not enough
     const float uv_1 = 255.0f / 256.0f;
     const float uv_0 = 1.0f - uv_1;
@@ -544,14 +350,16 @@ void GenMapApp::SetupBsp()
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     for (size_t i = 0; i < _bspAsset->_lightMaps.size(); i++)
     {
-        _lightmapIndices[i] = UploadToGl(_bspAsset->_lightMaps[i]);
+        auto &tex = _bspAsset->_lightMaps[i];
+        _lightmapIndices[i] = _renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data());
     }
 
     _textureIndices = std::vector<GLuint>(_bspAsset->_textures.size());
     glActiveTexture(GL_TEXTURE0);
     for (size_t i = 0; i < _bspAsset->_textures.size(); i++)
     {
-        _textureIndices[i] = UploadToGl(_bspAsset->_textures[i]);
+        auto &tex = _bspAsset->_textures[i];
+        _textureIndices[i] = _renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data());
     }
 
     for (size_t f = 0; f < _bspAsset->_faces.size(); f++)
@@ -579,16 +387,12 @@ void GenMapApp::SetupBsp()
 
                 _vertexBuffer
                     .uvs(glm::vec4(vertex.texcoords[1].x, vertex.texcoords[1].y, vertex.texcoords[0].x, vertex.texcoords[0].y))
+                    .bone(vertex.bone)
                     .vertex(glm::vec3(vertex.position));
             }
         }
 
         _faces.push_back(ft);
-    }
-
-    for (int i = 0; i < 6; i++)
-    {
-        _skyTextureIndices[i] = UploadToGl(_bspAsset->_skytextures[i]);
     }
 
     spdlog::debug("loaded {0} vertices", _vertexBuffer.vertexCount());
@@ -636,13 +440,41 @@ glm::vec3 GenMapApp::SetupEntities()
             }
             else
             {
-                auto asset = _assets.LoadAsset(bspEntity.keyvalues["model"]);
+                _registry.assign<ModelComponent>(entity, -1); // tell the renderer to look for a StudioComponent
 
-                if (asset != nullptr)
+                auto mdlAsset = _assets.LoadAsset<valve::hl1::MdlAsset>(bspEntity.keyvalues["model"]);
+
+                if (mdlAsset != nullptr)
                 {
                     StudioComponent sc = {
-                        .AssetId = asset->Id(),
+                        .AssetId = mdlAsset->Id(),
+                        .FirstVertexInBuffer = static_cast<int>(_studioVertexArray.vertexCount()),
+                        .VertexCount = static_cast<int>(mdlAsset->_vertices.size()),
+                        .TextureOffset = static_cast<int>(_textureIndices.size()),
+                        .LightmapOffset = static_cast<int>(_lightmapIndices.size()),
                     };
+
+                    glActiveTexture(GL_TEXTURE1);
+                    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                    for (size_t i = 0; i < mdlAsset->_lightmaps.size(); i++)
+                    {
+                        auto &tex = mdlAsset->_lightmaps[i];
+                        _lightmapIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
+                    }
+
+                    glActiveTexture(GL_TEXTURE0);
+                    for (size_t i = 0; i < mdlAsset->_textures.size(); i++)
+                    {
+                        auto &tex = _bspAsset->_textures[i];
+                        _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
+                    }
+
+                    for (auto &vert : mdlAsset->_vertices)
+                    {
+                        _studioVertexArray
+                            .uvs(vert.texcoords)
+                            .vertex(vert.position);
+                    }
 
                     _registry.assign<StudioComponent>(entity, sc);
                 }
@@ -671,6 +503,11 @@ glm::vec3 GenMapApp::SetupEntities()
 
         _registry.assign<RenderComponent>(entity, rc);
 
+        OriginComponent originComponent = {
+            .Origin = glm::vec3(0.0f),
+            .Angles = glm::vec3(0.0f),
+        };
+
         auto origin = bspEntity.keyvalues.find("origin");
         if (origin != bspEntity.keyvalues.end())
         {
@@ -678,12 +515,20 @@ glm::vec3 GenMapApp::SetupEntities()
 
             std::istringstream(origin->second) >> originPosition.x >> originPosition.y >> originPosition.z;
 
-            _registry.assign<OriginComponent>(entity, originPosition);
+            originComponent.Origin = originPosition;
         }
-        else
+
+        auto angles = bspEntity.keyvalues.find("angles");
+        if (angles != bspEntity.keyvalues.end())
         {
-            _registry.assign<OriginComponent>(entity, glm::vec3(0.0f));
+            glm::vec3 anglesPosition;
+
+            std::istringstream(angles->second) >> anglesPosition.x >> anglesPosition.y >> anglesPosition.z;
+
+            originComponent.Angles = anglesPosition;
         }
+
+        _registry.assign<OriginComponent>(entity, originComponent);
     }
 
     auto info_player_start = _bspAsset->FindEntityByClassname("info_player_start");
@@ -721,11 +566,6 @@ void GenMapApp::Resize(
 
 void GenMapApp::Destroy()
 {
-    if (_bspAsset != nullptr)
-    {
-        delete _bspAsset;
-        _bspAsset = nullptr;
-    }
 }
 
 void GenMapApp::RenderSky()
@@ -754,8 +594,6 @@ void GenMapApp::RenderSky()
 
 void GenMapApp::RenderBsp()
 {
-    _vertexBuffer.bind();
-
     glEnable(GL_DEPTH_TEST);
 
     auto m = _projectionMatrix * _cam.GetViewMatrix();
@@ -770,8 +608,6 @@ void GenMapApp::RenderBsp()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     RenderModelsByRenderMode(RenderModes::SolidBlending, _solidBlendingShader, m);
-
-    _vertexBuffer.unbind();
 }
 
 void GenMapApp::RenderModelsByRenderMode(
@@ -806,26 +642,117 @@ void GenMapApp::RenderModelsByRenderMode(
         auto modelComponent = _registry.get<ModelComponent>(entity);
         auto originComponent = _registry.get<OriginComponent>(entity);
 
-        shader.setupMatrices(glm::translate(matrix, originComponent.Origin));
-
-        auto model = _bspAsset->_models[modelComponent.Model];
-
-        for (int i = model.firstFace; i < model.firstFace + model.faceCount; i++)
+        auto endm = glm::translate(matrix, originComponent.Origin);
+        if (modelComponent.Model < 0)
         {
-            if (_faces[i].flags > 0)
+            endm = glm::rotate(endm, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            endm = glm::rotate(endm, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+
+        shader.setupMatrices(endm);
+
+        if (modelComponent.Model >= 0)
+        {
+            _vertexBuffer.bind();
+
+            auto model = _bspAsset->_models[modelComponent.Model];
+
+            for (int i = model.firstFace; i < model.firstFace + model.faceCount; i++)
+            {
+                if (_faces[i].flags > 0)
+                {
+                    continue;
+                }
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, _textureIndices[_faces[i].textureIndex]);
+
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, _lightmapIndices[_faces[i].lightmapIndex]);
+
+                glDrawArrays(GL_TRIANGLE_FAN, _faces[i].firstVertex, _faces[i].vertexCount);
+            }
+        }
+        else
+        {
+            auto studioComponent = _registry.try_get<StudioComponent>(entity);
+
+            if (studioComponent == nullptr)
             {
                 continue;
             }
 
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, _textureIndices[_faces[i].textureIndex]);
+            auto asset = _assets.GetAsset<valve::hl1::MdlAsset>(studioComponent->AssetId);
 
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[_faces[i].lightmapIndex]);
+            if (asset == nullptr)
+            {
+                continue;
+            }
 
-            glDrawArrays(GL_TRIANGLE_FAN, _faces[i].firstVertex, _faces[i].vertexCount);
+            _studioVertexArray.bind();
+
+            for (auto &face : asset->_faces)
+            {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, _textureIndices[studioComponent->TextureOffset + face.texture]);
+
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, _lightmapIndices[studioComponent->LightmapOffset + face.lightmap]);
+
+                glDrawArrays(GL_TRIANGLES, studioComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
+            }
         }
     }
+}
+
+void OpenGLMessageCallback(
+    unsigned source,
+    unsigned type,
+    unsigned id,
+    unsigned severity,
+    int length,
+    const char *message,
+    const void *userParam)
+{
+    (void)source;
+    (void)type;
+    (void)id;
+    (void)length;
+    (void)userParam;
+
+    switch (severity)
+    {
+        case GL_DEBUG_SEVERITY_HIGH:
+            spdlog::critical("{} - {}", source, message);
+            return;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            spdlog::error("{} - {}", source, message);
+            return;
+        case GL_DEBUG_SEVERITY_LOW:
+            spdlog::warn("{} - {}", source, message);
+            return;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            spdlog::trace("{} - {}", source, message);
+            return;
+    }
+
+    spdlog::debug("Unknown severity level!");
+    spdlog::debug(message);
+}
+
+void EnableOpenGlDebug()
+{
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(OpenGLMessageCallback, nullptr);
+
+    glDebugMessageControl(
+        GL_DONT_CARE,
+        GL_DONT_CARE,
+        GL_DEBUG_SEVERITY_NOTIFICATION,
+        0,
+        NULL,
+        GL_FALSE);
 }
 
 // pos x, y, z, color h, s, v
@@ -1052,3 +979,152 @@ float GenMapApp::vertices[216] = {
     0.6f,
     1.0f,
 };
+
+inline bool ends_with(
+    std::string const &value,
+    std::string const &ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+valve::Asset *AssetManager::LoadAsset(
+    const std::string &assetName)
+{
+    auto found = _loadedAssets.find(assetName);
+
+    if (found != _loadedAssets.end())
+    {
+        return found->second.get();
+    }
+
+    valve::Asset *asset = nullptr;
+
+    if (ends_with(assetName, ".bsp"))
+    {
+        asset = new valve::hl1::BspAsset(&_fs);
+    }
+
+    if (ends_with(assetName, ".mdl"))
+    {
+        asset = new valve::hl1::MdlAsset(&_fs);
+    }
+
+    if (asset != nullptr && asset->Load(assetName))
+    {
+        _loadedAssets.insert(std::make_pair(assetName, asset));
+
+        return asset;
+    }
+
+    return nullptr;
+}
+
+valve::Asset *AssetManager::GetAsset(
+    long id)
+{
+    for (auto &asset : _loadedAssets)
+    {
+        if (asset.second->Id() == id)
+        {
+            return asset.second.get();
+        }
+    }
+
+    return nullptr;
+}
+
+const char *solidBlendingVertexShader = GLSL(
+    in vec3 a_vertex;
+    in vec3 a_color;
+    in vec4 a_texcoords;
+
+    uniform mat4 u_matrix;
+
+    out vec3 v_color;
+    out vec2 v_uv_tex;
+    out vec2 v_uv_light;
+
+    void main() {
+        gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
+        v_color = a_color;
+        v_uv_light = a_texcoords.xy;
+        v_uv_tex = a_texcoords.zw;
+    });
+
+const char *solidBlendingFragmentShader = GLSL(
+    uniform sampler2D u_tex0;
+    uniform sampler2D u_tex1;
+
+    in vec3 v_color;
+    in vec2 v_uv_tex;
+    in vec2 v_uv_light;
+
+    out vec4 color;
+
+    void main() {
+        vec4 texel0;
+        vec4 texel1;
+        texel0 = texture2D(u_tex0, v_uv_tex);
+        texel1 = texture2D(u_tex1, v_uv_light);
+        vec4 tempcolor = texel0 * texel1;
+        if (texel0.a < 0.2)
+            discard;
+        else
+            tempcolor = vec4(texel0.rgb, 1.0) * vec4(texel1.rgb, 1.0) * vec4(v_color, 1.0);
+        color = tempcolor;
+    });
+
+const char *skyVertexShader = GLSL(
+    in vec3 a_vertex;
+    in vec3 a_color;
+    in vec4 a_texcoords;
+
+    uniform mat4 u_matrix;
+
+    out vec3 v_color;
+    out vec2 v_texCoord;
+
+    void main() {
+        gl_Position = u_matrix * vec4(a_vertex, 1.0);
+        v_color = a_color;
+        v_texCoord = a_texcoords.xy;
+    });
+
+const char *skyFragmentShader = GLSL(
+    in vec3 v_color;
+    in vec2 v_texCoord;
+
+    uniform sampler2D tex;
+
+    out vec4 color;
+
+    void main() {
+        color = texture(tex, v_texCoord) * vec4(v_color, 1.0f);
+    });
+
+const char *trailVertexShader = GLSL(
+    in vec3 a_vertex;
+    in vec3 a_color;
+    in vec4 a_texcoords;
+
+    uniform mat4 u_matrix;
+
+    out vec3 v_color;
+    out vec2 v_texCoord;
+
+    void main() {
+        gl_Position = u_matrix * vec4(a_vertex, 1.0);
+        v_color = a_color;
+        v_texCoord = a_texcoords.xy;
+    });
+
+const char *trailFragmentShader = GLSL(
+    in vec3 v_color;
+    in vec2 v_texCoord;
+
+    out vec4 color;
+
+    void main() {
+        color = vec4(v_texCoord, 1.0f, 1.0) * vec4(v_color, 1.0f);
+    });

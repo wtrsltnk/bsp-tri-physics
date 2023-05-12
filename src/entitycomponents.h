@@ -4,9 +4,15 @@
 #include <glm/vec3.hpp>
 #include <string>
 
+struct BallComponent
+{
+    int code;
+};
+
 struct OriginComponent
 {
     glm::vec3 Origin;
+    glm::vec3 Angles;
 };
 
 struct ModelComponent
@@ -17,6 +23,10 @@ struct ModelComponent
 struct StudioComponent
 {
     long AssetId = 0;
+    int FirstVertexInBuffer;
+    int VertexCount;
+    int TextureOffset = 0;
+    int LightmapOffset = 0;
     int Sequence = 0;                   // sequence index
     float Frame = 0;                    // frame
     bool Repeat = false;                // repeat after end of sequence

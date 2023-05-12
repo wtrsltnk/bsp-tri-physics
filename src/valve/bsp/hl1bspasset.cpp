@@ -35,8 +35,7 @@ BspAsset::BspAsset(
     : Asset(fs)
 {}
 
-BspAsset::~BspAsset()
-{}
+BspAsset::~BspAsset() = default;
 
 bool BspAsset::Load(
     const std::string &filename)

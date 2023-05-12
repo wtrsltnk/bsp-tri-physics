@@ -1,6 +1,7 @@
 {
 "classname" "worldspawn"
 "skyname" "blue"
+"classname" "worldspawn"
 "MaxRange" "4096"
 "mapversion" "220"
 "wad" "\games\counter-strike1.3\cstrike\cstrike.wad;\games\counter-strike1.3\valve\halflife.wad"
@@ -175,4 +176,12 @@
 ( 192 -152 32 ) ( 48 -152 32 ) ( 48 -152 0 ) AAATRIGGER [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1 
 ( 192 -208 0 ) ( 48 -208 0 ) ( 48 -208 32 ) AAATRIGGER [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1 
 }
+}
+{
+"classname" "cycler_sprite"
+"angles" "0 0 0"
+"framerate" "10"
+"rendercolor" "0 0 0"
+"model" "models/bankje.mdl"
+"origin" "304 -320 0"
 }
