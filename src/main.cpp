@@ -1,7 +1,4 @@
 
-#define APPLICATION_IMPLEMENTATION
-#include <application.h>
-
 #include "genmapapp.h"
 
 int main(
@@ -22,5 +19,5 @@ int main(
         spdlog::debug("loading map {0}", argv[1]);
     }
 
-    return Application::Run<GenMapApp>(t);
+    return Run(&t);
 }

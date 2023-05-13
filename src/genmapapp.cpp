@@ -19,6 +19,8 @@ void EnableOpenGlDebug();
 extern const char *solidBlendingVertexShader;
 extern const char *solidBlendingFragmentShader;
 extern const char *skyVertexShader;
+extern const char *studioNormalBlendingVertexShader;
+extern const char *studioNormalBlendingShaderFragmentShader;
 extern const char *skyFragmentShader;
 extern const char *trailVertexShader;
 extern const char *trailFragmentShader;
@@ -71,7 +73,8 @@ bool GenMapApp::Startup()
 
     auto origin = SetupEntities();
 
-    _studioVertexArray.upload(_normalBlendingShader);
+    _studioNormalBlendingShader.compile(studioNormalBlendingVertexShader, studioNormalBlendingShaderFragmentShader);
+    _studioVertexArray.upload(_studioNormalBlendingShader, true);
 
     _trailShader.compile(trailVertexShader, trailFragmentShader);
 
@@ -260,87 +263,87 @@ void GenMapApp::SetupSky()
 
     // if (renderFlag & SKY_BACK)
     _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(size, size, size));
+    _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_0, 0, 0))
         .vertex(glm::vec3(-size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, size));
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_1, 0, 0))
         .vertex(glm::vec3(size, -size, size));
     _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(size, size, size));
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, size));
 
     // if (renderFlag & SKY_DOWN)
     _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+        .vertex(glm::vec3(size, -size, size));
+    _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_1, 0, 0))
         .vertex(glm::vec3(-size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, -size));
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_0, 0, 0))
         .vertex(glm::vec3(size, -size, -size));
     _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
-        .vertex(glm::vec3(size, -size, size));
+        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, -size));
 
     // if (renderFlag & SKY_FRONT)
     _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, -size));
+    _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_0, 0, 0))
         .vertex(glm::vec3(size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(size, -size, -size));
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_1, 0, 0))
         .vertex(glm::vec3(-size, -size, -size));
     _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, -size));
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(size, -size, -size));
 
     // glBindTextureif (renderFlag & SKY_LEFT)
     _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, size));
+    _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_0, 0, 0))
         .vertex(glm::vec3(-size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, -size));
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_1, 0, 0))
         .vertex(glm::vec3(-size, -size, size));
     _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, size));
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, -size));
 
     // if (renderFlag & SKY_RIGHT)
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(size, -size, size));
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_1, 0, 0))
         .vertex(glm::vec3(size, -size, -size));
     _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(size, size, -size));
-    _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_0, 0, 0))
         .vertex(glm::vec3(size, size, size));
     _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(size, -size, size));
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(size, size, -size));
 
     // if (renderFlag & SKY_UP)
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+        .vertex(glm::vec3(size, size, -size));
     _skyVertexBuffer
         .uvs(glm::vec4(uv_1, uv_0, 0, 0))
         .vertex(glm::vec3(-size, size, -size));
     _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, size));
-    _skyVertexBuffer
         .uvs(glm::vec4(uv_0, uv_1, 0, 0))
         .vertex(glm::vec3(size, size, size));
     _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
-        .vertex(glm::vec3(size, size, -size));
+        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, size));
 }
 
 void GenMapApp::SetupBsp()
@@ -428,7 +431,10 @@ glm::vec3 GenMapApp::SetupEntities()
 
         if (bspEntity.keyvalues.count("model") != 0 && bspEntity.classname.rfind("func_", 0) != 0 && bspEntity.classname.rfind("hostage_entity", 0) != 0)
         {
-            ModelComponent mc = {0};
+            ModelComponent mc = {
+                .AssetId = _bspAsset->Id(),
+                .Model = 0,
+            };
 
             std::istringstream iss(bspEntity.keyvalues["model"]);
             iss.get(); // get the astrix
@@ -440,8 +446,6 @@ glm::vec3 GenMapApp::SetupEntities()
             }
             else
             {
-                _registry.assign<ModelComponent>(entity, -1); // tell the renderer to look for a StudioComponent
-
                 auto mdlAsset = _assets.LoadAsset<valve::hl1::MdlAsset>(bspEntity.keyvalues["model"]);
 
                 if (mdlAsset != nullptr)
@@ -450,10 +454,9 @@ glm::vec3 GenMapApp::SetupEntities()
                         .AssetId = mdlAsset->Id(),
                         .FirstVertexInBuffer = static_cast<int>(_studioVertexArray.vertexCount()),
                         .VertexCount = static_cast<int>(mdlAsset->_vertices.size()),
-                        .TextureOffset = static_cast<int>(_textureIndices.size()),
-                        .LightmapOffset = static_cast<int>(_lightmapIndices.size()),
                     };
 
+                    sc.LightmapOffset = static_cast<int>(_lightmapIndices.size());
                     glActiveTexture(GL_TEXTURE1);
                     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
                     for (size_t i = 0; i < mdlAsset->_lightmaps.size(); i++)
@@ -462,6 +465,7 @@ glm::vec3 GenMapApp::SetupEntities()
                         _lightmapIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
                     }
 
+                    sc.TextureOffset = static_cast<int>(_textureIndices.size());
                     glActiveTexture(GL_TEXTURE0);
                     for (size_t i = 0; i < mdlAsset->_textures.size(); i++)
                     {
@@ -472,6 +476,7 @@ glm::vec3 GenMapApp::SetupEntities()
                     for (auto &vert : mdlAsset->_vertices)
                     {
                         _studioVertexArray
+                            .bone(-1)
                             .uvs(vert.texcoords)
                             .vertex(vert.position);
                     }
@@ -570,7 +575,6 @@ void GenMapApp::Destroy()
 
 void GenMapApp::RenderSky()
 {
-    glEnable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
@@ -586,7 +590,7 @@ void GenMapApp::RenderSky()
     {
         glBindTexture(GL_TEXTURE_2D, _skyTextureIndices[i]);
 
-        glDrawArrays(GL_QUADS, i * 4, 4);
+        glDrawArrays(GL_TRIANGLE_STRIP, i * 4, 4);
     }
 
     _skyVertexBuffer.unbind();
@@ -595,19 +599,55 @@ void GenMapApp::RenderSky()
 void GenMapApp::RenderBsp()
 {
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
 
     auto m = _projectionMatrix * _cam.GetViewMatrix();
 
     glDisable(GL_BLEND);
     RenderModelsByRenderMode(RenderModes::NormalBlending, _normalBlendingShader, m);
+    RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_DST_ALPHA);
     RenderModelsByRenderMode(RenderModes::TextureBlending, _normalBlendingShader, m);
+    RenderStudioModelsByRenderMode(RenderModes::TextureBlending, _studioNormalBlendingShader, m);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     RenderModelsByRenderMode(RenderModes::SolidBlending, _solidBlendingShader, m);
+    RenderStudioModelsByRenderMode(RenderModes::SolidBlending, _studioNormalBlendingShader, m);
+}
+
+bool GenMapApp::SetupRenderComponent(
+    const entt::entity &entity,
+    RenderModes mode,
+    ShaderType &shader,
+    const glm::mat4 &matrix)
+{
+    auto renderComponent = _registry.get<RenderComponent>(entity);
+
+    if (renderComponent.Mode != mode)
+    {
+        return false;
+    }
+
+    if (mode == RenderModes::TextureBlending || mode == RenderModes::SolidBlending)
+    {
+        shader.setupColor(
+            glm::vec4(1.0f, 1.0f, 1.0f, float(renderComponent.Amount) / 255.0f));
+    }
+
+    auto originComponent = _registry.get<OriginComponent>(entity);
+
+    auto endm = glm::translate(matrix, originComponent.Origin);
+
+    endm = glm::rotate(endm, glm::radians(originComponent.Angles.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    endm = glm::rotate(endm, glm::radians(originComponent.Angles.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    shader.setupMatrices(endm);
+
+    return true;
 }
 
 void GenMapApp::RenderModelsByRenderMode(
@@ -615,8 +655,6 @@ void GenMapApp::RenderModelsByRenderMode(
     ShaderType &shader,
     const glm::mat4 &matrix)
 {
-    auto view = _registry.view<RenderComponent, ModelComponent, OriginComponent>();
-
     shader.use();
 
     if (mode == RenderModes::NormalBlending)
@@ -624,83 +662,79 @@ void GenMapApp::RenderModelsByRenderMode(
         shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
-    for (auto entity : view)
-    {
-        auto renderComponent = _registry.get<RenderComponent>(entity);
+    auto bspModels = _registry.view<RenderComponent, ModelComponent, OriginComponent>();
 
-        if (renderComponent.Mode != mode)
+    for (auto entity : bspModels)
+    {
+        if (!SetupRenderComponent(entity, mode, shader, matrix))
         {
             continue;
         }
 
-        if (mode == RenderModes::TextureBlending || mode == RenderModes::SolidBlending)
-        {
-            shader.setupColor(
-                glm::vec4(1.0f, 1.0f, 1.0f, float(renderComponent.Amount) / 255.0f));
-        }
+        _vertexBuffer.bind();
 
         auto modelComponent = _registry.get<ModelComponent>(entity);
-        auto originComponent = _registry.get<OriginComponent>(entity);
+        auto model = _bspAsset->_models[modelComponent.Model];
 
-        auto endm = glm::translate(matrix, originComponent.Origin);
-        if (modelComponent.Model < 0)
+        for (int i = model.firstFace; i < model.firstFace + model.faceCount; i++)
         {
-            endm = glm::rotate(endm, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            endm = glm::rotate(endm, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        }
-
-        shader.setupMatrices(endm);
-
-        if (modelComponent.Model >= 0)
-        {
-            _vertexBuffer.bind();
-
-            auto model = _bspAsset->_models[modelComponent.Model];
-
-            for (int i = model.firstFace; i < model.firstFace + model.faceCount; i++)
-            {
-                if (_faces[i].flags > 0)
-                {
-                    continue;
-                }
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, _textureIndices[_faces[i].textureIndex]);
-
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, _lightmapIndices[_faces[i].lightmapIndex]);
-
-                glDrawArrays(GL_TRIANGLE_FAN, _faces[i].firstVertex, _faces[i].vertexCount);
-            }
-        }
-        else
-        {
-            auto studioComponent = _registry.try_get<StudioComponent>(entity);
-
-            if (studioComponent == nullptr)
+            if (_faces[i].flags > 0)
             {
                 continue;
             }
 
-            auto asset = _assets.GetAsset<valve::hl1::MdlAsset>(studioComponent->AssetId);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, _textureIndices[_faces[i].textureIndex]);
 
-            if (asset == nullptr)
-            {
-                continue;
-            }
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[_faces[i].lightmapIndex]);
 
-            _studioVertexArray.bind();
+            glDrawArrays(GL_TRIANGLE_FAN, _faces[i].firstVertex, _faces[i].vertexCount);
+        }
+    }
+}
 
-            for (auto &face : asset->_faces)
-            {
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, _textureIndices[studioComponent->TextureOffset + face.texture]);
+void GenMapApp::RenderStudioModelsByRenderMode(
+    RenderModes mode,
+    ShaderType &shader,
+    const glm::mat4 &matrix)
+{
+    shader.use();
 
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, _lightmapIndices[studioComponent->LightmapOffset + face.lightmap]);
+    if (mode == RenderModes::NormalBlending)
+    {
+        shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    }
 
-                glDrawArrays(GL_TRIANGLES, studioComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
-            }
+    auto studioModels = _registry.view<RenderComponent, StudioComponent, OriginComponent>();
+
+    for (auto entity : studioModels)
+    {
+        if (!SetupRenderComponent(entity, mode, shader, matrix))
+        {
+            continue;
+        }
+
+        auto studioComponent = _registry.try_get<StudioComponent>(entity);
+
+        auto asset = _assets.GetAsset<valve::hl1::MdlAsset>(studioComponent->AssetId);
+
+        if (asset == nullptr)
+        {
+            continue;
+        }
+
+        _studioVertexArray.bind();
+
+        for (auto &face : asset->_faces)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, _textureIndices[studioComponent->TextureOffset + face.texture]);
+
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[studioComponent->LightmapOffset + face.lightmap]);
+
+            glDrawArrays(GL_TRIANGLES, studioComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
         }
     }
 }
@@ -1033,6 +1067,50 @@ valve::Asset *AssetManager::GetAsset(
 
     return nullptr;
 }
+
+const char *studioNormalBlendingVertexShader = GLSL(
+    in vec3 a_vertex;
+    in vec3 a_color;
+    in vec4 a_texcoords;
+    in int a_bone;
+
+    uniform mat4 u_matrix;
+    uniform vec4 u_color;
+
+    layout(std140) uniform BonesBlock {
+        mat4 u_bones[32];
+    };
+
+    out vec2 v_uv_tex;
+    out vec2 v_uv_light;
+    out vec4 v_color;
+
+    void main() {
+        mat4 m = u_matrix;
+        if (a_bone >= 0) m = m * u_bones[a_bone];
+        gl_Position = m * vec4(a_vertex.xyz, 1.0);
+        v_uv_light = a_texcoords.xy;
+        v_uv_tex = a_texcoords.zw;
+        v_color = vec4(a_color, 1.0) * u_color;
+    });
+
+const char *studioNormalBlendingShaderFragmentShader = GLSL(
+    uniform sampler2D u_tex0;
+    uniform sampler2D u_tex1;
+
+    in vec2 v_uv_tex;
+    in vec2 v_uv_light;
+    in vec4 v_color;
+
+    out vec4 color;
+
+    void main() {
+        vec4 texel0;
+        vec4 texel1;
+        texel0 = texture2D(u_tex0, v_uv_tex);
+        texel1 = texture2D(u_tex1, v_uv_light);
+        color = texel0 * texel1 * v_color;
+    });
 
 const char *solidBlendingVertexShader = GLSL(
     in vec3 a_vertex;

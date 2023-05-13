@@ -58,6 +58,7 @@ if (bullet3_ADDED)
 endif()
 
 add_executable(bsp-tri-physics
+    include/application.cpp
     include/application.h
     include/glad.c
     include/glad/glad.h

@@ -123,7 +123,8 @@ public:
     }
 
     bool upload(
-        ShaderType &shader)
+        ShaderType &shader,
+        bool includeBone = false)
     {
         _vertexCount = static_cast<GLsizei>(_verts.size());
 
@@ -150,7 +151,7 @@ public:
             GLsizeiptr(_verts.size() * sizeof(VertexType)),
             reinterpret_cast<const GLvoid *>(&_verts[0]));
 
-        shader.setupAttributes(sizeof(VertexType));
+        shader.setupAttributes(sizeof(VertexType), includeBone);
 
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);

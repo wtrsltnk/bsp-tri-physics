@@ -17,6 +17,7 @@ struct OriginComponent
 
 struct ModelComponent
 {
+    long AssetId = 0;
     int Model;
 };
 

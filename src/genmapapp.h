@@ -7,6 +7,7 @@
 #include "valve/bsp/hl1bspasset.h"
 #include "valve/hl1filesystem.h"
 
+#include <application.h>
 #include <chrono>
 #include <entt/entt.hpp>
 #include <glbuffer.h>
@@ -56,7 +57,7 @@ private:
     std::map<std::string, std::unique_ptr<valve::Asset>> _loadedAssets;
 };
 
-class GenMapApp
+class GenMapApp : public IApplication
 {
 public:
     enum SkyTextures
@@ -102,6 +103,11 @@ protected:
         ShaderType &shader,
         const glm::mat4 &matrix);
 
+    void RenderStudioModelsByRenderMode(
+        RenderModes mode,
+        ShaderType &shader,
+        const glm::mat4 &matrix);
+
 private:
     std::unique_ptr<IRenderer> _renderer;
     AssetManager _assets;
@@ -115,6 +121,7 @@ private:
     BufferType _studioVertexArray;
     GLuint _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
     ShaderType _normalBlendingShader;
+    ShaderType _studioNormalBlendingShader;
     ShaderType _solidBlendingShader;
     BufferType _vertexBuffer;
     std::vector<GLuint> _textureIndices;
@@ -127,6 +134,12 @@ private:
     PhysicsComponent _character;
 
     static float vertices[216];
+
+    bool SetupRenderComponent(
+        const entt::entity &entity,
+        RenderModes mode,
+        ShaderType &shader,
+        const glm::mat4 &matrix);
 };
 
 #endif // GENMAPAPP_H
