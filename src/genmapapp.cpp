@@ -248,104 +248,6 @@ void GenMapApp::SetFilename(
     _map = map;
 }
 
-void GenMapApp::SetupSky()
-{
-    for (int i = 0; i < 6; i++)
-    {
-        auto &tex = _bspAsset->_skytextures[i];
-        _skyTextureIndices[i] = _renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data());
-    }
-
-    // here we make up for the half of pixel to get the sky textures really stitched together because clamping is not enough
-    const float uv_1 = 255.0f / 256.0f;
-    const float uv_0 = 1.0f - uv_1;
-    const float size = 1.0f;
-
-    // if (renderFlag & SKY_BACK)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
-        .vertex(glm::vec3(size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, size));
-
-    // if (renderFlag & SKY_DOWN)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
-        .vertex(glm::vec3(size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(size, -size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, -size));
-
-    // if (renderFlag & SKY_FRONT)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
-        .vertex(glm::vec3(size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(size, -size, -size));
-
-    // glBindTextureif (renderFlag & SKY_LEFT)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(-size, -size, -size));
-
-    // if (renderFlag & SKY_RIGHT)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
-        .vertex(glm::vec3(size, -size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
-        .vertex(glm::vec3(size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(size, size, -size));
-
-    // if (renderFlag & SKY_UP)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
-        .vertex(glm::vec3(size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
-        .vertex(glm::vec3(size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
-        .vertex(glm::vec3(-size, size, size));
-}
-
 void GenMapApp::SetupBsp()
 {
     _lightmapIndices = std::vector<GLuint>(_bspAsset->_lightMaps.size());
@@ -473,10 +375,11 @@ glm::vec3 GenMapApp::SetupEntities()
                         _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
                     }
 
+                    std::cout << bspEntity.keyvalues["model"] << ": " << sc._bonesBuffer << std::endl;
                     for (auto &vert : mdlAsset->_vertices)
                     {
                         _studioVertexArray
-                            .bone(-1)
+                            .bone(vert.bone)
                             .uvs(vert.texcoords)
                             .vertex(vert.position);
                     }
@@ -558,42 +461,6 @@ glm::vec3 GenMapApp::SetupEntities()
     });
 
     return origin;
-}
-
-void GenMapApp::Resize(
-    int width,
-    int height)
-{
-    glViewport(0, 0, width, height);
-
-    _projectionMatrix = glm::perspective(glm::radians(90.0f), float(width) / float(height), 0.1f, 4096.0f);
-}
-
-void GenMapApp::Destroy()
-{
-}
-
-void GenMapApp::RenderSky()
-{
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-
-    _skyShader.use();
-
-    _skyShader.setupMatrices(_projectionMatrix * (_cam.GetViewMatrix() * glm::rotate(glm::translate(glm::mat4(1.0f), _cam.Position()), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))));
-
-    _skyVertexBuffer.bind();
-    glActiveTexture(GL_TEXTURE0);
-
-    for (int i = 0; i < SkyTextures::Count; i++)
-    {
-        glBindTexture(GL_TEXTURE_2D, _skyTextureIndices[i]);
-
-        glDrawArrays(GL_TRIANGLE_STRIP, i * 4, 4);
-    }
-
-    _skyVertexBuffer.unbind();
 }
 
 void GenMapApp::RenderBsp()
@@ -710,16 +577,38 @@ void GenMapApp::RenderStudioModelsByRenderMode(
 
     for (auto entity : studioModels)
     {
-        if (!SetupRenderComponent(entity, mode, shader, matrix))
-        {
-            continue;
-        }
-
         auto studioComponent = _registry.try_get<StudioComponent>(entity);
 
         auto asset = _assets.GetAsset<valve::hl1::MdlAsset>(studioComponent->AssetId);
 
         if (asset == nullptr)
+        {
+            continue;
+        }
+
+        _mdlInstance.Asset = asset;
+        _mdlInstance.Frame = studioComponent->Frame;
+        _mdlInstance.Mouth = studioComponent->Mouth;
+        _mdlInstance.Repeat = studioComponent->Repeat;
+        _mdlInstance.Sequence = studioComponent->Sequence;
+
+        for (int i = 0; i < 4; i++)
+        {
+            _mdlInstance.Blending[i] = studioComponent->Blending[i];
+            _mdlInstance.Controller[i] = studioComponent->Controller[i];
+        }
+
+        const glm::mat4 *skeleton = _mdlInstance.BuildSkeleton();
+
+        //        for (auto &m : skeleton)
+        //        {
+        //            std::cout << glm::to_string(m) << std::endl;
+        //        }
+        //        std::cout << std::endl;
+
+        shader.BindBones(skeleton, 32);
+
+        if (!SetupRenderComponent(entity, mode, shader, matrix))
         {
             continue;
         }
@@ -736,7 +625,145 @@ void GenMapApp::RenderStudioModelsByRenderMode(
 
             glDrawArrays(GL_TRIANGLES, studioComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
         }
+
+        _studioVertexArray.unbind();
+
+        shader.UnbindBones();
     }
+}
+
+void GenMapApp::Resize(
+    int width,
+    int height)
+{
+    glViewport(0, 0, width, height);
+
+    _projectionMatrix = glm::perspective(glm::radians(90.0f), float(width) / float(height), 0.1f, 4096.0f);
+}
+
+void GenMapApp::Destroy()
+{
+}
+
+void GenMapApp::SetupSky()
+{
+    for (int i = 0; i < 6; i++)
+    {
+        auto &tex = _bspAsset->_skytextures[i];
+        _skyTextureIndices[i] = _renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data());
+    }
+
+    // here we make up for the half of pixel to get the sky textures really stitched together because clamping is not enough
+    const float uv_1 = 255.0f / 256.0f;
+    const float uv_0 = 1.0f - uv_1;
+    const float size = 1.0f;
+
+    // if (renderFlag & SKY_BACK)
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(size, size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+        .vertex(glm::vec3(size, -size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, size));
+
+    // if (renderFlag & SKY_DOWN)
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+        .vertex(glm::vec3(size, -size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(size, -size, -size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, -size));
+
+    // if (renderFlag & SKY_FRONT)
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, -size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+        .vertex(glm::vec3(size, size, -size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, -size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(size, -size, -size));
+
+    // glBindTextureif (renderFlag & SKY_LEFT)
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, -size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(-size, -size, -size));
+
+    // if (renderFlag & SKY_RIGHT)
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(size, -size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+        .vertex(glm::vec3(size, -size, -size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+        .vertex(glm::vec3(size, size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(size, size, -size));
+
+    // if (renderFlag & SKY_UP)
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+        .vertex(glm::vec3(size, size, -size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, -size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+        .vertex(glm::vec3(size, size, size));
+    _skyVertexBuffer
+        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+        .vertex(glm::vec3(-size, size, size));
+}
+
+void GenMapApp::RenderSky()
+{
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+
+    _skyShader.use();
+
+    _skyShader.setupMatrices(_projectionMatrix * (_cam.GetViewMatrix() * glm::rotate(glm::translate(glm::mat4(1.0f), _cam.Position()), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))));
+
+    _skyVertexBuffer.bind();
+    glActiveTexture(GL_TEXTURE0);
+
+    for (int i = 0; i < SkyTextures::Count; i++)
+    {
+        glBindTexture(GL_TEXTURE_2D, _skyTextureIndices[i]);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, i * 4, 4);
+    }
+
+    _skyVertexBuffer.unbind();
 }
 
 void OpenGLMessageCallback(
@@ -1076,7 +1103,6 @@ const char *studioNormalBlendingVertexShader = GLSL(
 
     uniform mat4 u_matrix;
     uniform vec4 u_color;
-
     layout(std140) uniform BonesBlock {
         mat4 u_bones[32];
     };

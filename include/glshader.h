@@ -151,6 +151,18 @@ public:
         _matrixUniformId = glGetUniformLocation(_shaderId, "u_matrix");
         _colorUniformId = glGetUniformLocation(_shaderId, "u_color");
 
+        _bonesUniformId = 0;
+        GLint uniform_block_index = glGetUniformBlockIndex(_shaderId, "u_bones");
+        if (uniform_block_index >= 0)
+        {
+            glUniformBlockBinding(_shaderId, uniform_block_index, _bonesUniformId);
+
+            glGenBuffers(1, &_bonesBuffer);
+            glBindBuffer(GL_UNIFORM_BUFFER, _bonesBuffer);
+            glBufferData(GL_UNIFORM_BUFFER, 32 * sizeof(glm::mat4), 0, GL_STREAM_DRAW);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        }
+
         return true;
     }
 
@@ -172,7 +184,7 @@ public:
 
     void setupAttributes(
         GLsizei vertexSize,
-        bool includeBone = false) const
+        bool includeBone = false)
     {
         glUseProgram(_shaderId);
 
@@ -253,10 +265,26 @@ public:
         glUniform1i(ligtmapLocation, 1);
     }
 
+    void BindBones(
+        const glm::mat4 *m,
+        int count)
+    {
+        glBindBuffer(GL_UNIFORM_BUFFER, _bonesBuffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, count * sizeof(glm::mat4), glm::value_ptr(m[0]));
+        glBindBufferRange(GL_UNIFORM_BUFFER, _bonesUniformId, _bonesBuffer, 0, count * sizeof(glm::mat4));
+    }
+
+    void UnbindBones()
+    {
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
 private:
     GLuint _shaderId = 0;
     GLuint _matrixUniformId = 0;
     GLuint _colorUniformId = 0;
+    GLuint _bonesUniformId = 0;
+    unsigned int _bonesBuffer = 0;
 };
 
 #endif // GLSHADER_H

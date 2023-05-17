@@ -2,6 +2,10 @@
 #define HL1MDLINSTANCE_H
 
 #include "hl1mdlasset.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <vector>
 
 namespace valve
 {
@@ -11,13 +15,52 @@ namespace valve
 
         class MdlInstance
         {
-            MdlInstance(
-                MdlAsset *asset);
+        public:
+            MdlInstance();
 
             virtual ~MdlInstance();
 
+            MdlAsset *Asset;
+            int Sequence;
+            float Frame;
+            bool Repeat;
+            short Controller[4];
+            short Blending[4];
+            short Mouth;
+
+            const glm::mat4 *BuildSkeleton();
+
         private:
-            MdlAsset *_asset;
+            void CalcBoneAdj();
+
+            void CalcBoneQuaternion(
+                int frame,
+                float s,
+                const tMDLBone *pbone,
+                tMDLAnimation *panim,
+                glm::quat &q);
+
+            void CalcBonePosition(
+                int frame,
+                float s,
+                const tMDLBone *pbone,
+                tMDLAnimation *panim,
+                glm::vec3 &pos);
+
+            void CalcRotations(
+                glm::vec3 pos[],
+                glm::quat q[],
+                tMDLSequenceDescription *pseqdesc,
+                tMDLAnimation *panim);
+
+            void SlerpBones(
+                glm::quat q1[],
+                glm::vec3 pos1[],
+                glm::quat q2[],
+                glm::vec3 pos2[],
+                float s);
+
+            glm::quat _adj; // FIX: non persistant, make static
         };
 
     } // namespace hl1

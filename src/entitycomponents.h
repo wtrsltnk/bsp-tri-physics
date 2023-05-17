@@ -23,6 +23,9 @@ struct ModelComponent
 
 struct StudioComponent
 {
+    // The bones are different for each instance of mdl so we need to manage
+    // the data to the uniformbuffer in the instance, not the asset
+    unsigned int _bonesBuffer;
     long AssetId = 0;
     int FirstVertexInBuffer;
     int VertexCount;

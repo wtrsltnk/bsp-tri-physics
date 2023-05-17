@@ -6,6 +6,7 @@
 #include "physicsservice.hpp"
 #include "valve/bsp/hl1bspasset.h"
 #include "valve/hl1filesystem.h"
+#include "valve/mdl/hl1mdlinstance.h"
 
 #include <application.h>
 #include <chrono>
@@ -113,6 +114,7 @@ private:
     AssetManager _assets;
     std::string _map;
     valve::hl1::BspAsset *_bspAsset = nullptr;
+    valve::hl1::MdlInstance _mdlInstance;
     glm::mat4 _projectionMatrix = glm::mat4(1.0f);
     ShaderType _trailShader;
     ShaderType _skyShader;

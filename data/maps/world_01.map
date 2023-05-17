@@ -183,5 +183,13 @@
 "framerate" "10"
 "rendercolor" "0 0 0"
 "model" "models/bankje.mdl"
-"origin" "304 -320 0"
+"origin" "296 -320 24"
+}
+{
+"classname" "cycler_sprite"
+"angles" "0 0 0"
+"framerate" "10"
+"rendercolor" "0 0 0"
+"model" "models/chick.mdl"
+"origin" "360 -304 24"
 }
