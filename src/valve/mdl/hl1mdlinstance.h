@@ -22,7 +22,7 @@ namespace valve
 
             MdlAsset *Asset;
 
-            int SetSequence(
+            size_t SetSequence(
                 size_t iSequence,
                 bool repeat);
 
@@ -41,8 +41,8 @@ namespace valve
                 size_t bodygroup,
                 int model);
 
-            int SetSkin(
-                int iValue);
+            size_t SetSkin(
+                size_t iValue);
 
             float SetSpeed(
                 float speed);
@@ -57,6 +57,7 @@ namespace valve
 
         private:
             size_t Sequence = 0;
+            size_t Skin = 0;
             float Frame = 0.0f;
             bool Repeat = true;
             short Controller[4];

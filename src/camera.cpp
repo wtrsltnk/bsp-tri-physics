@@ -13,8 +13,8 @@ Camera::Camera()
 Camera::~Camera() = default;
 
 void Camera::ProcessMouseMovement(
-    double delta_x,
-    double delta_y,
+    float delta_x,
+    float delta_y,
     bool constraint_pitch = true)
 {
     yaw -= delta_x * sensitivity;

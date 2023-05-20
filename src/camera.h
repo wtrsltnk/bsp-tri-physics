@@ -10,8 +10,8 @@ public:
     virtual ~Camera();
 
     void ProcessMouseMovement(
-        double delta_x,
-        double delta_y,
+        float delta_x,
+        float delta_y,
         bool constraint_pitch);
 
     glm::mat4 GetViewMatrix();

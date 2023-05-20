@@ -119,45 +119,48 @@ const glm::mat4 *MdlInstance::BuildSkeleton()
 
 void MdlInstance::CalcBoneAdj()
 {
-    if (Asset != 0)
+    if (Asset == nullptr)
     {
-        float value;
-        const std::vector<tMDLBoneController> &pbonecontroller = Asset->_boneControllerData;
+        return;
+    }
 
-        for (size_t i = 0; i < pbonecontroller.size(); i++)
+    float value;
+    const std::vector<tMDLBoneController> &pbonecontroller = Asset->_boneControllerData;
+
+    for (size_t i = 0; i < pbonecontroller.size(); i++)
+    {
+        if (pbonecontroller[i].index <= 3)
         {
-            if (pbonecontroller[i].index <= 3)
-            {
-                // check for 360% wrapping
-                if (pbonecontroller[i].type & HL1_MDL_RLOOP)
-                    value = Controller[pbonecontroller[i].index] * (360.0f / 256.0f) + pbonecontroller[i].start;
-                else
-                {
-                    value = Controller[pbonecontroller[i].index] / 255.0f;
-                    if (value < 0) value = 0;
-                    if (value > 1.0f) value = 1.0f;
-                    value = (1.0f - value) * pbonecontroller[i].start + value * pbonecontroller[i].end;
-                }
-            }
+            // check for 360% wrapping
+            if (pbonecontroller[i].type & HL1_MDL_RLOOP)
+                value = Controller[pbonecontroller[i].index] * (360.0f / 256.0f) + pbonecontroller[i].start;
             else
             {
-                value = Mouth / 64.0f;
+                value = Controller[pbonecontroller[i].index] / 255.0f;
+                if (value < 0) value = 0;
                 if (value > 1.0f) value = 1.0f;
                 value = (1.0f - value) * pbonecontroller[i].start + value * pbonecontroller[i].end;
             }
-            switch (pbonecontroller[i].type & HL1_MDL_TYPES)
-            {
-                case HL1_MDL_XR:
-                case HL1_MDL_YR:
-                case HL1_MDL_ZR:
-                    this->_adj[i] = value * (glm::pi<float>() / 180.0f);
-                    break;
-                case HL1_MDL_X:
-                case HL1_MDL_Y:
-                case HL1_MDL_Z:
-                    this->_adj[i] = value;
-                    break;
-            }
+        }
+        else
+        {
+            value = float(Mouth / 64.0f);
+            if (value > 1.0f) value = 1.0f;
+            value = (1.0f - value) * pbonecontroller[i].start + value * pbonecontroller[i].end;
+        }
+
+        switch (pbonecontroller[i].type & HL1_MDL_TYPES)
+        {
+            case HL1_MDL_XR:
+            case HL1_MDL_YR:
+            case HL1_MDL_ZR:
+                this->_adj[i] = value * (glm::pi<float>() / 180.0f);
+                break;
+            case HL1_MDL_X:
+            case HL1_MDL_Y:
+            case HL1_MDL_Z:
+                this->_adj[i] = value;
+                break;
         }
     }
 }
@@ -347,7 +350,7 @@ void MdlInstance::SlerpBones(
     }
 }
 
-int MdlInstance::SetSequence(
+size_t MdlInstance::SetSequence(
     size_t iSequence,
     bool repeat)
 {
@@ -548,20 +551,22 @@ int MdlInstance::SetVisibleBodygroupModel(
     return this->_visibleModels[bodygroup];
 }
 
-int MdlInstance::SetSkin(
-    int iValue)
+size_t MdlInstance::SetSkin(
+    size_t iValue)
 {
-    //    if (Asset != 0)
-    //    {
-    //        if (iValue < Asset->_skinFamilyData.size())
-    //            return this->_skinnum;
+    if (Asset == nullptr)
+    {
+        return 0;
+    }
 
-    //        this->_skinnum = iValue;
+    if (iValue < Asset->_skinFamilyData.size())
+    {
+        return Skin;
+    }
 
-    //        return iValue;
-    //    }
+    Skin = iValue;
 
-    return 0;
+    return iValue;
 }
 
 float MdlInstance::SetSpeed(

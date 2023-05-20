@@ -194,7 +194,10 @@ bool GenMapApp::Tick(
         _physics->MoveCharacter(_character, glm::vec3(0.0f), speed);
     }
 
-    _cam.ProcessMouseMovement(inputState.MousePointerPosition[0], inputState.MousePointerPosition[1], true);
+    _cam.ProcessMouseMovement(
+        float(inputState.MousePointerPosition[0]),
+        float(inputState.MousePointerPosition[1]),
+        true);
 
     auto m = _physics->GetMatrix(_character);
     _cam.SetPosition(glm::vec3(m[3]) + glm::vec3(0.0f, 0.0f, 40.0f));
