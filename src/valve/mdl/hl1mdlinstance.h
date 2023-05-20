@@ -21,16 +21,47 @@ namespace valve
             virtual ~MdlInstance();
 
             MdlAsset *Asset;
-            int Sequence;
-            float Frame;
-            bool Repeat;
-            short Controller[4];
-            short Blending[4];
-            short Mouth;
+
+            int SetSequence(
+                int iSequence,
+                bool repeat);
+
+            float SetController(
+                int iController,
+                float flValue);
+
+            float SetMouth(
+                float flValue);
+
+            float SetBlending(
+                int iBlender,
+                float flValue);
+
+            int SetVisibleBodygroupModel(
+                int bodygroup,
+                int model);
+
+            int SetSkin(
+                int iValue);
+
+            float SetSpeed(
+                float speed);
 
             const glm::mat4 *BuildSkeleton();
 
+            static glm::mat4 _bonetransform[32];
+
+            int _visibleModels[MAX_MDL_BODYPARTS];
+
         private:
+            int Sequence = 0;
+            float Frame = 0.0f;
+            bool Repeat = false;
+            short Controller[4];
+            short Blending[4];
+            short Mouth = 0;
+            float Speed = 1.0f;
+
             void CalcBoneAdj();
 
             void CalcBoneQuaternion(

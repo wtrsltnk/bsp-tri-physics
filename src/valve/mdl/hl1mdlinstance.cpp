@@ -8,6 +8,8 @@ MdlInstance::MdlInstance() = default;
 
 MdlInstance::~MdlInstance() = default;
 
+glm::mat4 MdlInstance::_bonetransform[32] = {};
+
 const glm::mat4 *MdlInstance::BuildSkeleton()
 {
     static glm::vec3 pos[MAX_MDL_BONES];
@@ -19,8 +21,6 @@ const glm::mat4 *MdlInstance::BuildSkeleton()
     static glm::quat q3[MAX_MDL_BONES];
     static glm::vec3 pos4[MAX_MDL_BONES];
     static glm::quat q4[MAX_MDL_BONES];
-
-    static glm::mat4 _bonetransform[32];
 
     for (int i = 0; i < 32; i++)
     {
@@ -65,8 +65,6 @@ const glm::mat4 *MdlInstance::BuildSkeleton()
             this->SlerpBones(q, pos, q3, pos3, s);
         }
     }
-
-    assert(Asset->_boneData.size() <= 32);
 
     for (size_t i = 0; i < Asset->_boneData.size(); i++)
     {
@@ -284,24 +282,250 @@ void MdlInstance::SlerpBones(
     glm::vec3 pos2[],
     float s)
 {
-    if (Asset != 0)
+    if (Asset == nullptr)
     {
-        int i;
-        float s1;
+        return;
+    }
 
-        if (s < 0)
-            s = 0;
-        else if (s > 1.0f)
-            s = 1.0f;
+    float s1;
 
-        s1 = 1.0f - s;
+    if (s < 0)
+        s = 0;
+    else if (s > 1.0f)
+        s = 1.0f;
 
-        for (i = 0; i < Asset->_boneData.size(); i++)
+    s1 = 1.0f - s;
+
+    for (size_t i = 0; i < Asset->_boneData.size(); i++)
+    {
+        q1[i] = glm::slerp(q1[i], q2[i], s);
+        pos1[i][0] = pos1[i][0] * s1 + pos2[i][0] * s;
+        pos1[i][1] = pos1[i][1] * s1 + pos2[i][1] * s;
+        pos1[i][2] = pos1[i][2] * s1 + pos2[i][2] * s;
+    }
+}
+
+int MdlInstance::SetSequence(
+    int iSequence,
+    bool repeat)
+{
+    if (Asset == nullptr)
+    {
+        return 0;
+    }
+    if (iSequence > Asset->_sequenceData.size())
+        iSequence = 0;
+    if (iSequence < 0)
+        iSequence = Asset->_sequenceData.size() - 1;
+
+    Sequence = iSequence;
+    Frame = 0;
+    Repeat = repeat;
+
+    return Sequence;
+}
+
+float MdlInstance::SetController(
+    int iController,
+    float flValue)
+{
+    if (Asset == nullptr)
+    {
+        return 0.0f;
+    }
+
+    std::vector<tMDLBoneController> &bonecontrollers = Asset->_boneControllerData;
+
+    if (bonecontrollers.empty())
+    {
+        return 0.0f;
+    }
+
+    tMDLBoneController *pbonecontroller = &bonecontrollers[0];
+
+    size_t i;
+
+    // find first controller that matches the index
+    for (i = 0; i < bonecontrollers.size(); i++, pbonecontroller++)
+    {
+        if (pbonecontroller->index == iController)
+            break;
+    }
+    if (i >= bonecontrollers.size())
+        return flValue;
+
+    // wrap 0..360 if it's a rotational controller
+    if (pbonecontroller->type & (HL1_MDL_XR | HL1_MDL_YR | HL1_MDL_ZR))
+    {
+        // ugly hack, invert value if end < start
+        if (pbonecontroller->end < pbonecontroller->start)
+            flValue = -flValue;
+
+        // does the controller not wrap?
+        if (pbonecontroller->start + 359.0 >= pbonecontroller->end)
         {
-            q1[i] = glm::slerp(q1[i], q2[i], s);
-            pos1[i][0] = pos1[i][0] * s1 + pos2[i][0] * s;
-            pos1[i][1] = pos1[i][1] * s1 + pos2[i][1] * s;
-            pos1[i][2] = pos1[i][2] * s1 + pos2[i][2] * s;
+            if (flValue > ((pbonecontroller->start + pbonecontroller->end) / 2.0f) + 180)
+                flValue = flValue - 360;
+            if (flValue < ((pbonecontroller->start + pbonecontroller->end) / 2.0f) - 180)
+                flValue = flValue + 360;
+        }
+        else
+        {
+            if (flValue > 360)
+                flValue = flValue - int(flValue / 360.0) * 360.0f;
+            else if (flValue < 0)
+                flValue = flValue + int((flValue / -360.0) + 1) * 360.0f;
         }
     }
+
+    int setting = int(255 * (flValue - pbonecontroller->start) / (pbonecontroller->end - pbonecontroller->start));
+
+    if (setting < 0) setting = 0;
+    if (setting > 255) setting = 255;
+    Controller[iController] = setting;
+
+    return setting * (1.0f / 255.0f) * (pbonecontroller->end - pbonecontroller->start) + pbonecontroller->start;
+}
+
+float MdlInstance::SetMouth(
+    float flValue)
+{
+    if (Asset == nullptr)
+    {
+        return 0.0f;
+    }
+
+    std::vector<tMDLBoneController> &bonecontrollers = Asset->_boneControllerData;
+
+    if (bonecontrollers.empty())
+    {
+        return 0.0f;
+    }
+
+    tMDLBoneController *pbonecontroller = &bonecontrollers[0];
+
+    // find first controller that matches the mouth
+    for (int i = 0; i < bonecontrollers.size(); i++, pbonecontroller++)
+    {
+        if (pbonecontroller->index == 4)
+            break;
+    }
+
+    // wrap 0..360 if it's a rotational controller
+    if (pbonecontroller->type & (HL1_MDL_XR | HL1_MDL_YR | HL1_MDL_ZR))
+    {
+        // ugly hack, invert value if end < start
+        if (pbonecontroller->end < pbonecontroller->start)
+            flValue = -flValue;
+
+        // does the controller not wrap?
+        if (pbonecontroller->start + 359.0 >= pbonecontroller->end)
+        {
+            if (flValue > ((pbonecontroller->start + pbonecontroller->end) / 2.0f) + 180)
+                flValue = flValue - 360;
+            if (flValue < ((pbonecontroller->start + pbonecontroller->end) / 2.0f) - 180)
+                flValue = flValue + 360;
+        }
+        else
+        {
+            if (flValue > 360)
+                flValue = flValue - (int)(flValue / 360.0) * 360.0f;
+            else if (flValue < 0)
+                flValue = flValue + (int)((flValue / -360.0) + 1) * 360.0f;
+        }
+    }
+
+    int setting = int(64 * (flValue - pbonecontroller->start) / (pbonecontroller->end - pbonecontroller->start));
+
+    if (setting < 0) setting = 0;
+    if (setting > 64) setting = 64;
+    Mouth = setting;
+
+    return setting * (1.0f / 64.0f) * (pbonecontroller->end - pbonecontroller->start) + pbonecontroller->start;
+}
+
+float MdlInstance::SetBlending(
+    int iBlender,
+    float flValue)
+{
+    if (Asset == nullptr)
+    {
+        return 0.0f;
+    }
+
+    tMDLSequenceDescription &pseqdesc = Asset->_sequenceData[(int)Sequence];
+
+    if (pseqdesc.blendtype[iBlender] == 0)
+        return flValue;
+
+    if (pseqdesc.blendtype[iBlender] & (HL1_MDL_XR | HL1_MDL_YR | HL1_MDL_ZR))
+    {
+        // ugly hack, invert value if end < start
+        if (pseqdesc.blendend[iBlender] < pseqdesc.blendstart[iBlender])
+            flValue = -flValue;
+
+        // does the controller not wrap?
+        if (pseqdesc.blendstart[iBlender] + 359.0f >= pseqdesc.blendend[iBlender])
+        {
+            if (flValue > ((pseqdesc.blendstart[iBlender] + pseqdesc.blendend[iBlender]) / 2.0f) + 180)
+                flValue = flValue - 360;
+            if (flValue < ((pseqdesc.blendstart[iBlender] + pseqdesc.blendend[iBlender]) / 2.0f) - 180)
+                flValue = flValue + 360;
+        }
+    }
+
+    int setting = int(255 * (flValue - pseqdesc.blendstart[iBlender]) / (pseqdesc.blendend[iBlender] - pseqdesc.blendstart[iBlender]));
+
+    if (setting < 0) setting = 0;
+    if (setting > 255) setting = 255;
+
+    Blending[iBlender] = setting;
+
+    return setting * (1.0f / 255.0f) * (pseqdesc.blendend[iBlender] - pseqdesc.blendstart[iBlender]) + pseqdesc.blendstart[iBlender];
+}
+
+int MdlInstance::SetVisibleBodygroupModel(
+    int bodygroup,
+    int model)
+{
+    if (Asset == nullptr)
+    {
+        return -1;
+    }
+
+    if (bodygroup > Asset->_bodyparts.size())
+        return -1;
+
+    tMDLBodyParts &pbodypart = Asset->_bodyPartData[bodygroup];
+
+    if (model > pbodypart.nummodels)
+        return -1;
+
+    this->_visibleModels[bodygroup] = model;
+
+    return this->_visibleModels[bodygroup];
+}
+
+int MdlInstance::SetSkin(
+    int iValue)
+{
+    //    if (Asset != 0)
+    //    {
+    //        if (iValue < Asset->_skinFamilyData.size())
+    //            return this->_skinnum;
+
+    //        this->_skinnum = iValue;
+
+    //        return iValue;
+    //    }
+
+    return 0;
+}
+
+float MdlInstance::SetSpeed(
+    float speed)
+{
+    Speed = speed;
+
+    return Speed;
 }

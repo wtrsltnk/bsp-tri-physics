@@ -159,7 +159,7 @@ public:
 
             glGenBuffers(1, &_bonesBuffer);
             glBindBuffer(GL_UNIFORM_BUFFER, _bonesBuffer);
-            glBufferData(GL_UNIFORM_BUFFER, 32 * sizeof(glm::mat4), 0, GL_STREAM_DRAW);
+            glBufferData(GL_UNIFORM_BUFFER, 32 * sizeof(glm::mat4), nullptr, GL_STREAM_DRAW);
             glBindBuffer(GL_UNIFORM_BUFFER, 0);
         }
 

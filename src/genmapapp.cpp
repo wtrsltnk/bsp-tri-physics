@@ -375,7 +375,6 @@ glm::vec3 GenMapApp::SetupEntities()
                         _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
                     }
 
-                    std::cout << bspEntity.keyvalues["model"] << ": " << sc._bonesBuffer << std::endl;
                     for (auto &vert : mdlAsset->_vertices)
                     {
                         _studioVertexArray
@@ -587,26 +586,24 @@ void GenMapApp::RenderStudioModelsByRenderMode(
         }
 
         _mdlInstance.Asset = asset;
-        _mdlInstance.Frame = studioComponent->Frame;
-        _mdlInstance.Mouth = studioComponent->Mouth;
-        _mdlInstance.Repeat = studioComponent->Repeat;
-        _mdlInstance.Sequence = studioComponent->Sequence;
+        _mdlInstance.SetMouth(studioComponent->Mouth);
+        _mdlInstance.SetSequence(studioComponent->Sequence, studioComponent->Repeat);
 
         for (int i = 0; i < 4; i++)
         {
-            _mdlInstance.Blending[i] = studioComponent->Blending[i];
-            _mdlInstance.Controller[i] = studioComponent->Controller[i];
+            _mdlInstance.SetBlending(i, studioComponent->Blending[i]);
+            _mdlInstance.SetController(i, studioComponent->Controller[i]);
         }
 
-        const glm::mat4 *skeleton = _mdlInstance.BuildSkeleton();
+        _mdlInstance.BuildSkeleton();
 
-        //        for (auto &m : skeleton)
-        //        {
-        //            std::cout << glm::to_string(m) << std::endl;
-        //        }
-        //        std::cout << std::endl;
+        // for (size_t i = 0; i < asset->_boneData.size(); i++)
+        // {
+        //     std::cout << glm::to_string(_mdlInstance._bonetransform[i]) << std ::endl;
+        // }
+        // std::cout << std ::endl;
 
-        shader.BindBones(skeleton, 32);
+        shader.BindBones(_mdlInstance._bonetransform, _mdlInstance.Asset->_boneData.size());
 
         if (!SetupRenderComponent(entity, mode, shader, matrix))
         {
@@ -615,13 +612,29 @@ void GenMapApp::RenderStudioModelsByRenderMode(
 
         _studioVertexArray.bind();
 
-        for (auto &face : asset->_faces)
+        std::set<size_t> indices;
+        for (size_t bi = 0; bi < asset->_bodyparts.size(); bi++)
         {
+            auto &b = asset->_bodyparts[bi];
+            for (size_t mi = 0; mi < b.models.size(); mi++)
+            {
+                auto &m = b.models[mi];
+                for (size_t e = 0; e < m.faces.size(); e++)
+                {
+                    indices.insert(m.firstFace + e);
+                }
+            }
+        }
+
+        for (auto &faceIndex : indices)
+        {
+            auto &face = asset->_faces[faceIndex];
+
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, _textureIndices[studioComponent->TextureOffset + face.texture]);
 
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[studioComponent->LightmapOffset + face.lightmap]);
+            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[0]);
 
             glDrawArrays(GL_TRIANGLES, studioComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
         }
@@ -1135,7 +1148,7 @@ const char *studioNormalBlendingShaderFragmentShader = GLSL(
         vec4 texel1;
         texel0 = texture2D(u_tex0, v_uv_tex);
         texel1 = texture2D(u_tex1, v_uv_light);
-        color = texel0 * texel1 * v_color;
+        color = texel0 * v_color;
     });
 
 const char *solidBlendingVertexShader = GLSL(
