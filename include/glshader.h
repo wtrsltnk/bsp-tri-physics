@@ -250,7 +250,7 @@ public:
             glVertexAttribPointer(
                 GLuint(boneAttrib),
                 1,
-                GL_INT,
+                GL_FLOAT,
                 GL_FALSE,
                 vertexSize,
                 reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3) + sizeof(glm::vec4)));
@@ -259,19 +259,24 @@ public:
         }
 
         auto textLocation = glGetUniformLocation(_shaderId, "u_tex0");
-        auto ligtmapLocation = glGetUniformLocation(_shaderId, "u_tex1");
-
+        glActiveTexture(GL_TEXTURE0);
         glUniform1i(textLocation, 0);
+
+        auto ligtmapLocation = glGetUniformLocation(_shaderId, "u_tex1");
+        glActiveTexture(GL_TEXTURE1);
         glUniform1i(ligtmapLocation, 1);
     }
 
     void BindBones(
-        const glm::mat4 *m,
+        const glm::mat4 m[],
         int count)
     {
         glBindBuffer(GL_UNIFORM_BUFFER, _bonesBuffer);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, count * sizeof(glm::mat4), glm::value_ptr(m[0]));
-        glBindBufferRange(GL_UNIFORM_BUFFER, _bonesUniformId, _bonesBuffer, 0, count * sizeof(glm::mat4));
+        if (count > 0)
+        {
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, count * sizeof(glm::mat4), glm::value_ptr(m[0]));
+            glBindBufferRange(GL_UNIFORM_BUFFER, _bonesUniformId, _bonesBuffer, 0, count * sizeof(glm::mat4));
+        }
     }
 
     void UnbindBones()
