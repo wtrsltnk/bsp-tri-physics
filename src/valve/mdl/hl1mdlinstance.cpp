@@ -10,6 +10,44 @@ MdlInstance::~MdlInstance() = default;
 
 glm::mat4 MdlInstance::_bonetransform[32] = {};
 
+float MdlInstance::Update(
+    float prevFrame,
+    std::chrono::microseconds time)
+{
+    Frame = prevFrame;
+
+    if (Asset == nullptr)
+    {
+        return Frame;
+    }
+
+    tMDLSequenceDescription &pseqdesc = Asset->_sequenceData[Sequence];
+
+    auto dt = float(double(time.count()) / 1000000.0);
+    if (dt > 0.1f)
+    {
+        dt = 0.1f;
+    }
+
+    if (Frame + (dt * pseqdesc.fps * Speed) < (pseqdesc.numframes - 1) || Repeat)
+    {
+        Frame += dt * pseqdesc.fps * Speed;
+
+        if (pseqdesc.numframes <= 1)
+        {
+            Frame = 0;
+        }
+        else // wrap
+        {
+            Frame -= (int)(Frame / (pseqdesc.numframes - 1)) * (pseqdesc.numframes - 1);
+        }
+    }
+
+    BuildSkeleton();
+
+    return Frame;
+}
+
 const glm::mat4 *MdlInstance::BuildSkeleton()
 {
     static glm::vec3 pos[MAX_MDL_BONES];
@@ -191,9 +229,13 @@ void MdlInstance::CalcBoneQuaternion(
     }
 
     if (angle1 != angle2)
+    {
         q = glm::slerp(glm::quat(angle1), glm::quat(angle2), s);
+    }
     else
+    {
         q = glm::quat(angle1);
+    }
 }
 
 void MdlInstance::CalcBonePosition(
@@ -306,7 +348,7 @@ void MdlInstance::SlerpBones(
 }
 
 int MdlInstance::SetSequence(
-    int iSequence,
+    size_t iSequence,
     bool repeat)
 {
     if (Asset == nullptr)
@@ -405,7 +447,7 @@ float MdlInstance::SetMouth(
     tMDLBoneController *pbonecontroller = &bonecontrollers[0];
 
     // find first controller that matches the mouth
-    for (int i = 0; i < bonecontrollers.size(); i++, pbonecontroller++)
+    for (size_t i = 0; i < bonecontrollers.size(); i++, pbonecontroller++)
     {
         if (pbonecontroller->index == 4)
             break;
@@ -485,7 +527,7 @@ float MdlInstance::SetBlending(
 }
 
 int MdlInstance::SetVisibleBodygroupModel(
-    int bodygroup,
+    size_t bodygroup,
     int model)
 {
     if (Asset == nullptr)

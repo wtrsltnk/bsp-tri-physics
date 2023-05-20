@@ -33,7 +33,7 @@ struct StudioComponent
     int LightmapOffset = 0;
     int Sequence = 0;                   // sequence index
     float Frame = 0;                    // frame
-    bool Repeat = false;                // repeat after end of sequence
+    bool Repeat = true;                 // repeat after end of sequence
     int Skinnum = 0;                    // skin group selection
     short Controller[4] = {0, 0, 0, 0}; // bone controllers
     short Blending[2] = {0, 0};         // animation blending

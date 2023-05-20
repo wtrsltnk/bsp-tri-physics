@@ -23,7 +23,7 @@ namespace valve
             MdlAsset *Asset;
 
             int SetSequence(
-                int iSequence,
+                size_t iSequence,
                 bool repeat);
 
             float SetController(
@@ -38,7 +38,7 @@ namespace valve
                 float flValue);
 
             int SetVisibleBodygroupModel(
-                int bodygroup,
+                size_t bodygroup,
                 int model);
 
             int SetSkin(
@@ -47,20 +47,24 @@ namespace valve
             float SetSpeed(
                 float speed);
 
-            const glm::mat4 *BuildSkeleton();
+            float Update(
+                float prevFrame,
+                std::chrono::microseconds time);
 
             static glm::mat4 _bonetransform[32];
 
             int _visibleModels[MAX_MDL_BODYPARTS];
 
         private:
-            int Sequence = 0;
+            size_t Sequence = 0;
             float Frame = 0.0f;
-            bool Repeat = false;
+            bool Repeat = true;
             short Controller[4];
             short Blending[4];
             short Mouth = 0;
             float Speed = 1.0f;
+
+            const glm::mat4 *BuildSkeleton();
 
             void CalcBoneAdj();
 

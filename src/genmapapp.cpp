@@ -202,7 +202,7 @@ bool GenMapApp::Tick(
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     RenderSky();
-    RenderBsp();
+    RenderBsp(time);
 
     glDisable(GL_CULL_FACE);
 
@@ -250,21 +250,21 @@ void GenMapApp::SetFilename(
 
 void GenMapApp::SetupBsp()
 {
-    _lightmapIndices = std::vector<GLuint>(_bspAsset->_lightMaps.size());
+    _lightmapIndices = std::vector<GLuint>();
     glActiveTexture(GL_TEXTURE1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     for (size_t i = 0; i < _bspAsset->_lightMaps.size(); i++)
     {
         auto &tex = _bspAsset->_lightMaps[i];
-        _lightmapIndices[i] = _renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data());
+        _lightmapIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
     }
 
-    _textureIndices = std::vector<GLuint>(_bspAsset->_textures.size());
+    _textureIndices = std::vector<GLuint>();
     glActiveTexture(GL_TEXTURE0);
     for (size_t i = 0; i < _bspAsset->_textures.size(); i++)
     {
         auto &tex = _bspAsset->_textures[i];
-        _textureIndices[i] = _renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data());
+        _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
     }
 
     for (size_t f = 0; f < _bspAsset->_faces.size(); f++)
@@ -299,8 +299,6 @@ void GenMapApp::SetupBsp()
 
         _faces.push_back(ft);
     }
-
-    spdlog::debug("loaded {0} vertices", _vertexBuffer.vertexCount());
 }
 
 glm::vec3 GenMapApp::SetupEntities()
@@ -371,7 +369,7 @@ glm::vec3 GenMapApp::SetupEntities()
                     glActiveTexture(GL_TEXTURE0);
                     for (size_t i = 0; i < mdlAsset->_textures.size(); i++)
                     {
-                        auto &tex = _bspAsset->_textures[i];
+                        auto &tex = mdlAsset->_textures[i];
                         _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
                     }
 
@@ -462,7 +460,8 @@ glm::vec3 GenMapApp::SetupEntities()
     return origin;
 }
 
-void GenMapApp::RenderBsp()
+void GenMapApp::RenderBsp(
+    std::chrono::microseconds time)
 {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -472,17 +471,17 @@ void GenMapApp::RenderBsp()
 
     glDisable(GL_BLEND);
     RenderModelsByRenderMode(RenderModes::NormalBlending, _normalBlendingShader, m);
-    RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m);
+    RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m, time);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_DST_ALPHA);
     RenderModelsByRenderMode(RenderModes::TextureBlending, _normalBlendingShader, m);
-    RenderStudioModelsByRenderMode(RenderModes::TextureBlending, _studioNormalBlendingShader, m);
+    RenderStudioModelsByRenderMode(RenderModes::TextureBlending, _studioNormalBlendingShader, m, time);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     RenderModelsByRenderMode(RenderModes::SolidBlending, _solidBlendingShader, m);
-    RenderStudioModelsByRenderMode(RenderModes::SolidBlending, _studioNormalBlendingShader, m);
+    RenderStudioModelsByRenderMode(RenderModes::SolidBlending, _studioNormalBlendingShader, m, time);
 }
 
 bool GenMapApp::SetupRenderComponent(
@@ -508,8 +507,9 @@ bool GenMapApp::SetupRenderComponent(
 
     auto endm = glm::translate(matrix, originComponent.Origin);
 
-    endm = glm::rotate(endm, glm::radians(originComponent.Angles.y), glm::vec3(0.0f, 1.0f, 0.0f));
-    endm = glm::rotate(endm, glm::radians(originComponent.Angles.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    endm = glm::rotate(endm, glm::radians(originComponent.Angles.z), glm::vec3(1.0f, 0.0f, 0.0f));
+    endm = glm::rotate(endm, glm::radians(originComponent.Angles.y), glm::vec3(0.0f, 0.0f, 1.0f));
+    endm = glm::rotate(endm, glm::radians(originComponent.Angles.x), glm::vec3(0.0f, -1.0f, 0.0f));
 
     shader.setupMatrices(endm);
 
@@ -563,7 +563,8 @@ void GenMapApp::RenderModelsByRenderMode(
 void GenMapApp::RenderStudioModelsByRenderMode(
     RenderModes mode,
     ShaderType &shader,
-    const glm::mat4 &matrix)
+    const glm::mat4 &matrix,
+    std::chrono::microseconds time)
 {
     shader.use();
 
@@ -595,13 +596,7 @@ void GenMapApp::RenderStudioModelsByRenderMode(
             _mdlInstance.SetController(i, studioComponent->Controller[i]);
         }
 
-        _mdlInstance.BuildSkeleton();
-
-        // for (size_t i = 0; i < asset->_boneData.size(); i++)
-        // {
-        //     std::cout << glm::to_string(_mdlInstance._bonetransform[i]) << std ::endl;
-        // }
-        // std::cout << std ::endl;
+        studioComponent->Frame = _mdlInstance.Update(studioComponent->Frame, time);
 
         shader.BindBones(_mdlInstance._bonetransform, _mdlInstance.Asset->_boneData.size());
 
@@ -634,7 +629,7 @@ void GenMapApp::RenderStudioModelsByRenderMode(
             glBindTexture(GL_TEXTURE_2D, _textureIndices[studioComponent->TextureOffset + face.texture]);
 
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[0]);
+            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[studioComponent->LightmapOffset + face.lightmap]);
 
             glDrawArrays(GL_TRIANGLES, studioComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
         }
@@ -1128,8 +1123,8 @@ const char *studioNormalBlendingVertexShader = GLSL(
         mat4 m = u_matrix;
         if (a_bone >= 0) m = m * u_bones[a_bone];
         gl_Position = m * vec4(a_vertex.xyz, 1.0);
-        v_uv_light = a_texcoords.xy;
-        v_uv_tex = a_texcoords.zw;
+        v_uv_light = a_texcoords.zw;
+        v_uv_tex = a_texcoords.xy;
         v_color = vec4(a_color, 1.0) * u_color;
     });
 

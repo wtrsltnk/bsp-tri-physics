@@ -269,7 +269,7 @@ public:
 
     void BindBones(
         const glm::mat4 m[],
-        int count)
+        size_t count)
     {
         glBindBuffer(GL_UNIFORM_BUFFER, _bonesBuffer);
         if (count > 0)

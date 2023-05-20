@@ -97,7 +97,8 @@ protected:
 
     void RenderSky();
 
-    void RenderBsp();
+    void RenderBsp(
+        std::chrono::microseconds time);
 
     void RenderModelsByRenderMode(
         RenderModes mode,
@@ -107,7 +108,8 @@ protected:
     void RenderStudioModelsByRenderMode(
         RenderModes mode,
         ShaderType &shader,
-        const glm::mat4 &matrix);
+        const glm::mat4 &matrix,
+        std::chrono::microseconds time);
 
 private:
     std::unique_ptr<IRenderer> _renderer;

@@ -2,7 +2,6 @@
 "classname" "worldspawn"
 "skyname" "blue"
 "classname" "worldspawn"
-"MaxRange" "4096"
 "mapversion" "220"
 "wad" "\games\counter-strike1.3\cstrike\cstrike.wad;\games\counter-strike1.3\valve\halflife.wad"
 {
@@ -130,6 +129,7 @@
 "classname" "light_environment"
 "angles" "0 0 0"
 "_light" "255 255 128 80"
+"pitch" "0"
 "origin" "448 -64 128"
 }
 {
@@ -142,9 +142,22 @@
 "spawnflags" "97"
 "angles" "0 0 0"
 "rendercolor" "0 0 0"
+"speed" "0"
+"_minlight" "0"
+"dmg" "0"
+"movesnd" "0"
+"stopsnd" "0"
 "wait" "4"
+"lip" "0"
+"delay" "0"
+"health" "0"
+"locked_sound" "0"
+"unlocked_sound" "0"
+"locked_sentence" "0"
+"unlocked_sentence" "0"
 "distance" "90"
 "targetname" "screen"
+"renderfx" "0"
 "rendermode" "2"
 "renderamt" "100"
 {
@@ -168,6 +181,8 @@
 "classname" "trigger_once"
 "target" "screen"
 "style" "32"
+"sounds" "0"
+"delay" "0"
 {
 ( 48 -152 32 ) ( 192 -152 32 ) ( 192 -208 32 ) AAATRIGGER [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1 
 ( 48 -208 0 ) ( 192 -208 0 ) ( 192 -152 0 ) AAATRIGGER [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1 
@@ -179,11 +194,11 @@
 }
 {
 "classname" "cycler_sprite"
-"angles" "0 0 0"
+"angles" "0 259 0"
 "framerate" "10"
 "rendercolor" "0 0 0"
 "model" "models/chick.mdl"
-"origin" "360 -304 24"
+"origin" "360 -304 8"
 }
 {
 "classname" "cycler_sprite"
@@ -191,5 +206,21 @@
 "framerate" "10"
 "rendercolor" "0 0 0"
 "model" "models/bankje.mdl"
-"origin" "288 -448 24"
+"origin" "288 -448 8"
+}
+{
+"classname" "cycler_sprite"
+"angles" "259 0 0"
+"framerate" "10"
+"rendercolor" "0 0 0"
+"model" "models/chick.mdl"
+"origin" "256 -304 8"
+}
+{
+"classname" "cycler_sprite"
+"angles" "0 0 259"
+"framerate" "10"
+"rendercolor" "0 0 0"
+"model" "models/chick.mdl"
+"origin" "464 -304 8"
 }
