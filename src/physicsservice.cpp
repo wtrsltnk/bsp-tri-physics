@@ -203,7 +203,7 @@ void PhysicsService::Step(
         // spdlog::info("  timeInMs = {}", timeInUs);
         mDynamicsWorld->stepSimulation(btScalar(1.0f / 60.0f), 1, btScalar(1.0f / 120.0f));
 
-        timeInUs -= (200000.0 / 60.0);
+        timeInUs -= std::ceil(200000.0 / 60.0);
     }
     //    mDynamicsWorld->stepSimulation(static_cast<double>(diff.count()) / 100.0, 1, btScalar(1.0f / 120.0f));
 }

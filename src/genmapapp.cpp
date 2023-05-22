@@ -16,12 +16,6 @@
 
 void EnableOpenGlDebug();
 
-extern const char *solidBlendingVertexShader;
-extern const char *solidBlendingFragmentShader;
-extern const char *skyVertexShader;
-extern const char *studioNormalBlendingVertexShader;
-extern const char *studioNormalBlendingShaderFragmentShader;
-extern const char *skyFragmentShader;
 extern const char *trailVertexShader;
 extern const char *trailFragmentShader;
 
@@ -59,22 +53,7 @@ bool GenMapApp::Startup()
         return false;
     }
 
-    SetupBsp();
-
-    _solidBlendingShader.compile(solidBlendingVertexShader, solidBlendingFragmentShader);
-
-    _normalBlendingShader.compileDefaultShader();
-    _vertexBuffer.upload(_normalBlendingShader);
-
-    SetupSky();
-
-    _skyShader.compile(skyVertexShader, skyFragmentShader);
-    _skyVertexBuffer.upload(_skyShader);
-
-    auto origin = SetupEntities();
-
-    _studioNormalBlendingShader.compile(studioNormalBlendingVertexShader, studioNormalBlendingShaderFragmentShader);
-    _studioVertexArray.upload(_studioNormalBlendingShader, true);
+    auto origin = SetupBsp();
 
     _trailShader.compile(trailVertexShader, trailFragmentShader);
 
@@ -251,7 +230,7 @@ void GenMapApp::SetFilename(
     _map = map;
 }
 
-void GenMapApp::SetupBsp()
+glm::vec3 GenMapApp::SetupBsp()
 {
     _lightmapIndices = std::vector<GLuint>();
     glActiveTexture(GL_TEXTURE1);
@@ -302,6 +281,18 @@ void GenMapApp::SetupBsp()
 
         _faces.push_back(ft);
     }
+
+    _solidBlendingShader.compileBspShader();
+
+    _normalBlendingShader.compileDefaultShader();
+    _vertexBuffer.upload(_normalBlendingShader);
+
+    auto origin = SetupEntities();
+
+    _studioNormalBlendingShader.compileMdlShader();
+    _studioVertexArray.upload(_studioNormalBlendingShader, true);
+
+    return origin;
 }
 
 glm::vec3 GenMapApp::SetupEntities()
@@ -310,16 +301,14 @@ glm::vec3 GenMapApp::SetupEntities()
     {
         const auto entity = _registry.create();
 
-        // spdlog::info("Entity {}", bspEntity.classname);
-        // for (auto kvp : bspEntity.keyvalues)
-        // {
-        //     spdlog::info("    {} = {}", kvp.first, kvp.second);
-        // }
-        // spdlog::info(" ");
-
         if (bspEntity.classname == "worldspawn")
         {
             _registry.assign<ModelComponent>(entity, 0);
+
+            SetupSky();
+
+            _skyShader.compileSkyShader();
+            _skyVertexBuffer.upload(_skyShader);
         }
 
         if (bspEntity.classname == "info_player_deathmatch")
@@ -478,7 +467,7 @@ void GenMapApp::RenderBsp(
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_DST_ALPHA);
-    RenderModelsByRenderMode(RenderModes::TextureBlending, _normalBlendingShader, m);
+    RenderModelsByRenderMode(RenderModes::TextureBlending, _solidBlendingShader, m);
     RenderStudioModelsByRenderMode(RenderModes::TextureBlending, _studioNormalBlendingShader, m, time);
 
     glEnable(GL_BLEND);
@@ -524,16 +513,22 @@ void GenMapApp::RenderModelsByRenderMode(
     ShaderType &shader,
     const glm::mat4 &matrix)
 {
+    auto entities = _registry.view<RenderComponent, ModelComponent, OriginComponent>();
+
+    if (entities.empty())
+    {
+        return;
+    }
+
     shader.use();
+    shader.setupBrightness(2.0f);
 
     if (mode == RenderModes::NormalBlending)
     {
         shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
-    auto bspModels = _registry.view<RenderComponent, ModelComponent, OriginComponent>();
-
-    for (auto entity : bspModels)
+    for (auto entity : entities)
     {
         if (!SetupRenderComponent(entity, mode, shader, matrix))
         {
@@ -569,16 +564,22 @@ void GenMapApp::RenderStudioModelsByRenderMode(
     const glm::mat4 &matrix,
     std::chrono::microseconds time)
 {
+    auto entities = _registry.view<RenderComponent, StudioComponent, OriginComponent>();
+
+    if (entities.empty())
+    {
+        return;
+    }
+
     shader.use();
+    shader.setupBrightness(2.0f);
 
     if (mode == RenderModes::NormalBlending)
     {
         shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
-    auto studioModels = _registry.view<RenderComponent, StudioComponent, OriginComponent>();
-
-    for (auto entity : studioModels)
+    for (auto entity : entities)
     {
         auto studioComponent = _registry.try_get<StudioComponent>(entity);
 
@@ -1051,172 +1052,6 @@ float GenMapApp::vertices[216] = {
     0.6f,
     1.0f,
 };
-
-inline bool ends_with(
-    std::string const &value,
-    std::string const &ending)
-{
-    if (ending.size() > value.size()) return false;
-    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
-valve::Asset *AssetManager::LoadAsset(
-    const std::string &assetName)
-{
-    auto found = _loadedAssets.find(assetName);
-
-    if (found != _loadedAssets.end())
-    {
-        return found->second.get();
-    }
-
-    valve::Asset *asset = nullptr;
-
-    if (ends_with(assetName, ".bsp"))
-    {
-        asset = new valve::hl1::BspAsset(&_fs);
-    }
-
-    if (ends_with(assetName, ".mdl"))
-    {
-        asset = new valve::hl1::MdlAsset(&_fs);
-    }
-
-    if (asset != nullptr && asset->Load(assetName))
-    {
-        _loadedAssets.insert(std::make_pair(assetName, asset));
-
-        return asset;
-    }
-
-    return nullptr;
-}
-
-valve::Asset *AssetManager::GetAsset(
-    long id)
-{
-    for (auto &asset : _loadedAssets)
-    {
-        if (asset.second->Id() == id)
-        {
-            return asset.second.get();
-        }
-    }
-
-    return nullptr;
-}
-
-const char *studioNormalBlendingVertexShader = GLSL(
-    in vec3 a_vertex;
-    in vec3 a_color;
-    in vec4 a_texcoords;
-    in int a_bone;
-
-    uniform mat4 u_matrix;
-    uniform vec4 u_color;
-    layout(std140) uniform BonesBlock {
-        mat4 u_bones[32];
-    };
-
-    out vec2 v_uv_tex;
-    out vec2 v_uv_light;
-    out vec4 v_color;
-
-    void main() {
-        mat4 m = u_matrix;
-        if (a_bone >= 0) m = m * u_bones[a_bone];
-        gl_Position = m * vec4(a_vertex.xyz, 1.0);
-        v_uv_light = a_texcoords.zw;
-        v_uv_tex = a_texcoords.xy;
-        v_color = vec4(a_color, 1.0) * u_color;
-    });
-
-const char *studioNormalBlendingShaderFragmentShader = GLSL(
-    uniform sampler2D u_tex0;
-    uniform sampler2D u_tex1;
-
-    in vec2 v_uv_tex;
-    in vec2 v_uv_light;
-    in vec4 v_color;
-
-    out vec4 color;
-
-    void main() {
-        vec4 texel0;
-        vec4 texel1;
-        texel0 = texture2D(u_tex0, v_uv_tex);
-        texel1 = texture2D(u_tex1, v_uv_light);
-        color = texel0 * v_color;
-    });
-
-const char *solidBlendingVertexShader = GLSL(
-    in vec3 a_vertex;
-    in vec3 a_color;
-    in vec4 a_texcoords;
-
-    uniform mat4 u_matrix;
-
-    out vec3 v_color;
-    out vec2 v_uv_tex;
-    out vec2 v_uv_light;
-
-    void main() {
-        gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
-        v_color = a_color;
-        v_uv_light = a_texcoords.xy;
-        v_uv_tex = a_texcoords.zw;
-    });
-
-const char *solidBlendingFragmentShader = GLSL(
-    uniform sampler2D u_tex0;
-    uniform sampler2D u_tex1;
-
-    in vec3 v_color;
-    in vec2 v_uv_tex;
-    in vec2 v_uv_light;
-
-    out vec4 color;
-
-    void main() {
-        vec4 texel0;
-        vec4 texel1;
-        texel0 = texture2D(u_tex0, v_uv_tex);
-        texel1 = texture2D(u_tex1, v_uv_light);
-        vec4 tempcolor = texel0 * texel1;
-        if (texel0.a < 0.2)
-            discard;
-        else
-            tempcolor = vec4(texel0.rgb, 1.0) * vec4(texel1.rgb, 1.0) * vec4(v_color, 1.0);
-        color = tempcolor;
-    });
-
-const char *skyVertexShader = GLSL(
-    in vec3 a_vertex;
-    in vec3 a_color;
-    in vec4 a_texcoords;
-
-    uniform mat4 u_matrix;
-
-    out vec3 v_color;
-    out vec2 v_texCoord;
-
-    void main() {
-        gl_Position = u_matrix * vec4(a_vertex, 1.0);
-        v_color = a_color;
-        v_texCoord = a_texcoords.xy;
-    });
-
-const char *skyFragmentShader = GLSL(
-    in vec3 v_color;
-    in vec2 v_texCoord;
-
-    uniform sampler2D tex;
-
-    out vec4 color;
-
-    void main() {
-        color = texture(tex, v_texCoord) * vec4(v_color, 1.0f);
-    });
 
 const char *trailVertexShader = GLSL(
     in vec3 a_vertex;

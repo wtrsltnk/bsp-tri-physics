@@ -1,11 +1,11 @@
 #ifndef GENMAPAPP_H
 #define GENMAPAPP_H
 
+#include "assetmanager.h"
 #include "camera.h"
 #include "entitycomponents.h"
 #include "physicsservice.hpp"
 #include "valve/bsp/hl1bspasset.h"
-#include "valve/hl1filesystem.h"
 #include "valve/mdl/hl1mdlinstance.h"
 
 #include <application.h>
@@ -29,35 +29,6 @@ public:
     int flags;
 };
 
-class AssetManager
-{
-public:
-    FileSystem _fs;
-
-    valve::Asset *LoadAsset(
-        const std::string &name);
-
-    template <typename T>
-    T *LoadAsset(
-        const std::string &name)
-    {
-        return reinterpret_cast<T *>(LoadAsset(name));
-    }
-
-    valve::Asset *GetAsset(
-        long id);
-
-    template <typename T>
-    T *GetAsset(
-        long id)
-    {
-        return reinterpret_cast<T *>(GetAsset(id));
-    }
-
-private:
-    std::map<std::string, std::unique_ptr<valve::Asset>> _loadedAssets;
-};
-
 class GenMapApp : public IApplication
 {
 public:
@@ -72,26 +43,26 @@ public:
         Count,
     };
 
-    void SetFilename(
+    virtual void SetFilename(
         const char *root,
         const char *map);
 
-    bool Startup();
+    virtual bool Startup();
 
-    void Resize(
+    virtual void Resize(
         int width,
         int height);
 
-    void Destroy();
+    virtual void Destroy();
 
-    bool Tick(
+    virtual bool Tick(
         std::chrono::microseconds time,
         const struct InputState &inputState);
 
 protected:
     void SetupSky();
 
-    void SetupBsp();
+    glm::vec3 SetupBsp();
 
     glm::vec3 SetupEntities();
 

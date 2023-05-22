@@ -4,8 +4,6 @@ include(cmake/CPM.cmake)
 
 project(bsp-tri-physics)
 
-find_package(OPENGL REQUIRED)
-
 CPMAddPackage(
     NAME spdlog
     GITHUB_REPOSITORY gabime/spdlog
@@ -27,8 +25,8 @@ CPMAddPackage(
 )
 
 if (EnTT_ADDED)
-  add_library(EnTT INTERFACE)
-  target_include_directories(EnTT INTERFACE ${EnTT_SOURCE_DIR}/src)
+    add_library(EnTT INTERFACE)
+    target_include_directories(EnTT INTERFACE ${EnTT_SOURCE_DIR}/src)
 endif()
 
 CPMAddPackage(
@@ -58,7 +56,6 @@ if (bullet3_ADDED)
 endif()
 
 add_executable(bsp-tri-physics
-    include/application.cpp
     include/application.h
     include/glad.c
     include/glad/glad.h
@@ -68,11 +65,15 @@ add_executable(bsp-tri-physics
     include/irenderer.hpp
     include/stb_image.h
     include/stb_rect_pack.h
+    src/assetmanager.cpp
+    src/assetmanager.h
     src/camera.cpp
     src/camera.h
     src/entitycomponents.h
     src/genmapapp.cpp
     src/genmapapp.h
+    src/glbuffer.cpp
+    src/glshader.cpp
     src/main.cpp
     src/physicsservice.cpp
     src/physicsservice.hpp
@@ -98,6 +99,21 @@ add_executable(bsp-tri-physics
     src/vertexarray.cpp
 )
 
+if(WIN32)
+    find_package(OPENGL REQUIRED)
+
+    target_sources(bsp-tri-physics
+        PUBLIC
+            include/application-win32.cpp
+            include/glad_wgl.c
+    )
+
+    target_link_libraries(bsp-tri-physics
+        PRIVATE
+            ${OPENGL_LIBRARIES}
+    )
+endif()
+
 target_sources(bsp-tri-physics
     PRIVATE
         include/GL/wglext.h
@@ -111,7 +127,6 @@ target_include_directories(bsp-tri-physics
 
 target_link_libraries(bsp-tri-physics
     PRIVATE
-        ${OPENGL_LIBRARIES}
         glm
         spdlog
         EnTT
