@@ -17,8 +17,6 @@ bool IsMouseButtonPushed(
 
 #include <glad/glad.h>
 
-#ifdef _WIN32
-
 #include <GL/wglext.h>
 #include <windowsx.h>
 #include <sstream>
@@ -832,10 +830,6 @@ Win32Application *CreateApplication(
 
     return nullptr;
 }
-#endif // _WIN32
-
-#ifdef __linux__
-#endif // __linux__
 
 void InputState::OnKeyboardButtonDown(
     KeyboardButtons button,

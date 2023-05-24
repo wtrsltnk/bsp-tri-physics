@@ -46,56 +46,119 @@ bool GenMapApp::Startup()
 
     spdlog::info("{} @ {}", _assets._fs.Mod(), _assets._fs.Root().generic_string());
 
-    _bspAsset = _assets.LoadAsset<valve::hl1::BspAsset>(_map);
+    _rootAsset = _assets.LoadAsset(_map);
 
-    if (_bspAsset == nullptr)
+    if (_rootAsset == nullptr)
     {
         return false;
     }
 
-    auto origin = SetupBsp();
+    auto mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(_rootAsset);
 
-    _trailShader.compile(trailVertexShader, trailFragmentShader);
-
-    for (int v = 0; v < 36; v++)
+    if (mdlAsset != nullptr)
     {
-        _vertexArray
-            .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
-    }
+        const auto entity = _registry.create();
 
-    _vertexArray.upload(_trailShader);
+        OriginComponent originComponent = {
+            .Origin = glm::vec3(0.0f),
+            .Angles = glm::vec3(0.0f),
+        };
 
-    std::vector<glm::vec3> triangles;
+        _registry.assign<OriginComponent>(entity, originComponent);
 
-    auto &rootModel = _bspAsset->_models[0];
+        RenderComponent rc = {0, {255, 255, 255}, RenderModes::NormalBlending};
 
-    for (int f = rootModel.firstFace; f < rootModel.firstFace + rootModel.faceCount; f++)
-    {
-        auto &face = _bspAsset->_faces[f];
+        _registry.assign<RenderComponent>(entity, rc);
 
-        // if (face.flags != 0)
-        // {
-        //     continue;
-        // }
+        StudioComponent sc = {
+            .AssetId = mdlAsset->Id(),
+            .FirstVertexInBuffer = static_cast<int>(_studioVertexArray.vertexCount()),
+            .VertexCount = static_cast<int>(mdlAsset->_vertices.size()),
+        };
 
-        auto &vertex1 = _bspAsset->_vertices[face.firstVertex];
-        auto &vertex2 = _bspAsset->_vertices[face.firstVertex + 1];
-
-        for (int v = face.firstVertex + 2; v < face.firstVertex + face.vertexCount; v++)
+        sc.LightmapOffset = static_cast<int>(_lightmapIndices.size());
+        glActiveTexture(GL_TEXTURE1);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        for (size_t i = 0; i < mdlAsset->_lightmaps.size(); i++)
         {
-            triangles.push_back(vertex1.position);
-            triangles.push_back(vertex2.position);
-            triangles.push_back(_bspAsset->_vertices[v].position);
-
-            vertex2 = _bspAsset->_vertices[v];
+            auto &tex = mdlAsset->_lightmaps[i];
+            _lightmapIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
         }
+
+        sc.TextureOffset = static_cast<int>(_textureIndices.size());
+        glActiveTexture(GL_TEXTURE0);
+        for (size_t i = 0; i < mdlAsset->_textures.size(); i++)
+        {
+            auto &tex = mdlAsset->_textures[i];
+            _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
+        }
+
+        for (auto &vert : mdlAsset->_vertices)
+        {
+            _studioVertexArray
+                .bone(vert.bone)
+                .uvs(vert.texcoords)
+                .vertex(vert.position);
+        }
+
+        _registry.assign<StudioComponent>(entity, sc);
+
+        _studioNormalBlendingShader.compileMdlShader();
+        _studioVertexArray.upload(_studioNormalBlendingShader, true);
+
+        return true;
     }
 
-    _physics->AddStatic(triangles);
+    auto bspAsset = dynamic_cast<valve::hl1::BspAsset *>(_rootAsset);
 
-    _character = _physics->AddCharacter(15, 16, 45, origin);
+    if (bspAsset != nullptr)
+    {
+        auto origin = SetupBsp(bspAsset);
 
-    return true;
+        _trailShader.compile(trailVertexShader, trailFragmentShader);
+
+        for (int v = 0; v < 36; v++)
+        {
+            _vertexArray
+                .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
+        }
+
+        _vertexArray.upload(_trailShader);
+
+        std::vector<glm::vec3> triangles;
+
+        auto &rootModel = bspAsset->_models[0];
+
+        for (int f = rootModel.firstFace; f < rootModel.firstFace + rootModel.faceCount; f++)
+        {
+            auto &face = bspAsset->_faces[f];
+
+            // if (face.flags != 0)
+            // {
+            //     continue;
+            // }
+
+            auto &vertex1 = bspAsset->_vertices[face.firstVertex];
+            auto &vertex2 = bspAsset->_vertices[face.firstVertex + 1];
+
+            for (int v = face.firstVertex + 2; v < face.firstVertex + face.vertexCount; v++)
+            {
+                triangles.push_back(vertex1.position);
+                triangles.push_back(vertex2.position);
+                triangles.push_back(bspAsset->_vertices[v].position);
+
+                vertex2 = bspAsset->_vertices[v];
+            }
+        }
+
+        _physics->AddStatic(triangles);
+
+        _character = _physics->AddCharacter(15, 16, 45, origin);
+
+        return true;
+    }
+
+    return false;
 }
 
 bool showPhysicsDebug = false;
@@ -120,57 +183,63 @@ bool GenMapApp::Tick(
         _registry.assign<BallComponent>(entity, 0);
     }
 
-    if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
+    if (_character.bodyIndex > 0)
     {
-        _physics->JumpCharacter(_character, _cam.Up());
-    }
-
-    if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeyF8))
-    {
-        showPhysicsDebug = !showPhysicsDebug;
-    }
-
-    if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
-    {
-        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+        if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
         {
-            _physics->MoveCharacter(_character, _cam.Forward() + _cam.Left(), speed);
+            _physics->JumpCharacter(_character, _cam.Up());
+        }
+
+        if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeyF8))
+        {
+            showPhysicsDebug = !showPhysicsDebug;
+        }
+
+        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
+        {
+            if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+            {
+                _physics->MoveCharacter(_character, _cam.Forward() + _cam.Left(), speed);
+            }
+            else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+            {
+                _physics->MoveCharacter(_character, _cam.Back() + _cam.Left(), speed);
+            }
+            else
+            {
+                _physics->MoveCharacter(_character, _cam.Left(), speed);
+            }
+        }
+        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyRight] || inputState.KeyboardButtonStates[KeyboardButtons::KeyD])
+        {
+            if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+            {
+                _physics->MoveCharacter(_character, _cam.Forward() + _cam.Right(), speed);
+            }
+            else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+            {
+                _physics->MoveCharacter(_character, _cam.Back() + _cam.Right(), speed);
+            }
+            else
+            {
+                _physics->MoveCharacter(_character, _cam.Right(), speed);
+            }
+        }
+        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+        {
+            _physics->MoveCharacter(_character, _cam.Forward(), speed);
         }
         else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
         {
-            _physics->MoveCharacter(_character, _cam.Back() + _cam.Left(), speed);
+            _physics->MoveCharacter(_character, _cam.Back(), speed);
         }
         else
         {
-            _physics->MoveCharacter(_character, _cam.Left(), speed);
+            _physics->MoveCharacter(_character, glm::vec3(0.0f), speed);
         }
-    }
-    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyRight] || inputState.KeyboardButtonStates[KeyboardButtons::KeyD])
-    {
-        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
-        {
-            _physics->MoveCharacter(_character, _cam.Forward() + _cam.Right(), speed);
-        }
-        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
-        {
-            _physics->MoveCharacter(_character, _cam.Back() + _cam.Right(), speed);
-        }
-        else
-        {
-            _physics->MoveCharacter(_character, _cam.Right(), speed);
-        }
-    }
-    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
-    {
-        _physics->MoveCharacter(_character, _cam.Forward(), speed);
-    }
-    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
-    {
-        _physics->MoveCharacter(_character, _cam.Back(), speed);
-    }
-    else
-    {
-        _physics->MoveCharacter(_character, glm::vec3(0.0f), speed);
+
+        auto m = _physics->GetMatrix(_character);
+        _cam.SetPosition(glm::vec3(m[3]) + glm::vec3(0.0f, 0.0f, 40.0f));
     }
 
     _cam.ProcessMouseMovement(
@@ -178,13 +247,9 @@ bool GenMapApp::Tick(
         float(inputState.MousePointerPosition[1]),
         true);
 
-    auto m = _physics->GetMatrix(_character);
-    _cam.SetPosition(glm::vec3(m[3]) + glm::vec3(0.0f, 0.0f, 40.0f));
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    RenderSky();
-    RenderBsp(time);
+    RenderAsset(time);
 
     glDisable(GL_CULL_FACE);
 
@@ -222,6 +287,38 @@ bool GenMapApp::Tick(
     return true; // to keep running
 }
 
+bool GenMapApp::RenderAsset(
+    std::chrono::microseconds time)
+{
+    auto mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(_rootAsset);
+
+    if (mdlAsset != nullptr)
+    {
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+
+        auto m = _projectionMatrix * _cam.GetViewMatrix();
+
+        glDisable(GL_BLEND);
+        RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m, time);
+
+        return true;
+    }
+
+    auto bspAsset = dynamic_cast<valve::hl1::BspAsset *>(_rootAsset);
+
+    if (bspAsset != nullptr)
+    {
+        RenderSky();
+        RenderBsp(bspAsset, time);
+
+        return true;
+    }
+
+    return false;
+}
+
 void GenMapApp::SetFilename(
     const char *root,
     const char *map)
@@ -230,28 +327,29 @@ void GenMapApp::SetFilename(
     _map = map;
 }
 
-glm::vec3 GenMapApp::SetupBsp()
+glm::vec3 GenMapApp::SetupBsp(
+    valve::hl1::BspAsset *bspAsset)
 {
     _lightmapIndices = std::vector<GLuint>();
     glActiveTexture(GL_TEXTURE1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    for (size_t i = 0; i < _bspAsset->_lightMaps.size(); i++)
+    for (size_t i = 0; i < bspAsset->_lightMaps.size(); i++)
     {
-        auto &tex = _bspAsset->_lightMaps[i];
+        auto &tex = bspAsset->_lightMaps[i];
         _lightmapIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
     }
 
     _textureIndices = std::vector<GLuint>();
     glActiveTexture(GL_TEXTURE0);
-    for (size_t i = 0; i < _bspAsset->_textures.size(); i++)
+    for (size_t i = 0; i < bspAsset->_textures.size(); i++)
     {
-        auto &tex = _bspAsset->_textures[i];
+        auto &tex = bspAsset->_textures[i];
         _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
     }
 
-    for (size_t f = 0; f < _bspAsset->_faces.size(); f++)
+    for (size_t f = 0; f < bspAsset->_faces.size(); f++)
     {
-        auto &face = _bspAsset->_faces[f];
+        auto &face = bspAsset->_faces[f];
 
         FaceType ft;
 
@@ -270,7 +368,7 @@ glm::vec3 GenMapApp::SetupBsp()
 
             for (int v = face.firstVertex; v < face.firstVertex + face.vertexCount; v++)
             {
-                auto &vertex = _bspAsset->_vertices[v];
+                auto &vertex = bspAsset->_vertices[v];
 
                 _vertexBuffer
                     .uvs(glm::vec4(vertex.texcoords[1].x, vertex.texcoords[1].y, vertex.texcoords[0].x, vertex.texcoords[0].y))
@@ -287,7 +385,7 @@ glm::vec3 GenMapApp::SetupBsp()
     _normalBlendingShader.compileDefaultShader();
     _vertexBuffer.upload(_normalBlendingShader);
 
-    auto origin = SetupEntities();
+    auto origin = SetupEntities(bspAsset);
 
     _studioNormalBlendingShader.compileMdlShader();
     _studioVertexArray.upload(_studioNormalBlendingShader, true);
@@ -295,9 +393,10 @@ glm::vec3 GenMapApp::SetupBsp()
     return origin;
 }
 
-glm::vec3 GenMapApp::SetupEntities()
+glm::vec3 GenMapApp::SetupEntities(
+    valve::hl1::BspAsset *bspAsset)
 {
-    for (auto &bspEntity : _bspAsset->_entities)
+    for (auto &bspEntity : bspAsset->_entities)
     {
         const auto entity = _registry.create();
 
@@ -305,7 +404,7 @@ glm::vec3 GenMapApp::SetupEntities()
         {
             _registry.assign<ModelComponent>(entity, 0);
 
-            SetupSky();
+            SetupSky(bspAsset);
 
             _skyShader.compileSkyShader();
             _skyVertexBuffer.upload(_skyShader);
@@ -324,7 +423,7 @@ glm::vec3 GenMapApp::SetupEntities()
         if (bspEntity.keyvalues.count("model") != 0 && bspEntity.classname.rfind("func_", 0) != 0 && bspEntity.classname.rfind("hostage_entity", 0) != 0)
         {
             ModelComponent mc = {
-                .AssetId = _bspAsset->Id(),
+                .AssetId = bspAsset->Id(),
                 .Model = 0,
             };
 
@@ -428,7 +527,7 @@ glm::vec3 GenMapApp::SetupEntities()
         _registry.assign<OriginComponent>(entity, originComponent);
     }
 
-    auto info_player_start = _bspAsset->FindEntityByClassname("info_player_start");
+    auto info_player_start = bspAsset->FindEntityByClassname("info_player_start");
 
     glm::vec3 angles(0.0f);
     glm::vec3 origin(0.0f);
@@ -453,6 +552,7 @@ glm::vec3 GenMapApp::SetupEntities()
 }
 
 void GenMapApp::RenderBsp(
+    valve::hl1::BspAsset *bspAsset,
     std::chrono::microseconds time)
 {
     glEnable(GL_DEPTH_TEST);
@@ -462,17 +562,17 @@ void GenMapApp::RenderBsp(
     auto m = _projectionMatrix * _cam.GetViewMatrix();
 
     glDisable(GL_BLEND);
-    RenderModelsByRenderMode(RenderModes::NormalBlending, _normalBlendingShader, m);
+    RenderModelsByRenderMode(bspAsset, RenderModes::NormalBlending, _normalBlendingShader, m);
     RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m, time);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_DST_ALPHA);
-    RenderModelsByRenderMode(RenderModes::TextureBlending, _solidBlendingShader, m);
+    RenderModelsByRenderMode(bspAsset, RenderModes::TextureBlending, _solidBlendingShader, m);
     RenderStudioModelsByRenderMode(RenderModes::TextureBlending, _studioNormalBlendingShader, m, time);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    RenderModelsByRenderMode(RenderModes::SolidBlending, _solidBlendingShader, m);
+    RenderModelsByRenderMode(bspAsset, RenderModes::SolidBlending, _solidBlendingShader, m);
     RenderStudioModelsByRenderMode(RenderModes::SolidBlending, _studioNormalBlendingShader, m, time);
 }
 
@@ -509,6 +609,7 @@ bool GenMapApp::SetupRenderComponent(
 }
 
 void GenMapApp::RenderModelsByRenderMode(
+    valve::hl1::BspAsset *bspAsset,
     RenderModes mode,
     ShaderType &shader,
     const glm::mat4 &matrix)
@@ -538,7 +639,7 @@ void GenMapApp::RenderModelsByRenderMode(
         _vertexBuffer.bind();
 
         auto modelComponent = _registry.get<ModelComponent>(entity);
-        auto model = _bspAsset->_models[modelComponent.Model];
+        auto model = bspAsset->_models[modelComponent.Model];
 
         for (int i = model.firstFace; i < model.firstFace + model.faceCount; i++)
         {
@@ -657,11 +758,12 @@ void GenMapApp::Destroy()
 {
 }
 
-void GenMapApp::SetupSky()
+void GenMapApp::SetupSky(
+    valve::hl1::BspAsset *bspAsset)
 {
     for (int i = 0; i < 6; i++)
     {
-        auto &tex = _bspAsset->_skytextures[i];
+        auto &tex = bspAsset->_skytextures[i];
         _skyTextureIndices[i] = _renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data());
     }
 

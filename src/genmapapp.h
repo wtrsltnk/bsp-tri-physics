@@ -60,18 +60,26 @@ public:
         const struct InputState &inputState);
 
 protected:
-    void SetupSky();
+    void SetupSky(
+        valve::hl1::BspAsset *bspAsset);
 
-    glm::vec3 SetupBsp();
+    glm::vec3 SetupBsp(
+        valve::hl1::BspAsset *bspAsset);
 
-    glm::vec3 SetupEntities();
+    glm::vec3 SetupEntities(
+        valve::hl1::BspAsset *bspAsset);
+
+    bool RenderAsset(
+        std::chrono::microseconds time);
 
     void RenderSky();
 
     void RenderBsp(
+        valve::hl1::BspAsset *bspAsset,
         std::chrono::microseconds time);
 
     void RenderModelsByRenderMode(
+        valve::hl1::BspAsset *bspAsset,
         RenderModes mode,
         ShaderType &shader,
         const glm::mat4 &matrix);
@@ -86,7 +94,7 @@ private:
     std::unique_ptr<IRenderer> _renderer;
     AssetManager _assets;
     std::string _map;
-    valve::hl1::BspAsset *_bspAsset = nullptr;
+    valve::Asset *_rootAsset = nullptr;
     valve::hl1::MdlInstance _mdlInstance;
     glm::mat4 _projectionMatrix = glm::mat4(1.0f);
     ShaderType _trailShader;
