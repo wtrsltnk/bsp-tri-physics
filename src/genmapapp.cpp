@@ -57,6 +57,8 @@ bool GenMapApp::Startup()
 
     if (mdlAsset != nullptr)
     {
+        auto center = mdlAsset->_header->min + ((mdlAsset->_header->max - mdlAsset->_header->min) * 0.5f);
+
         const auto entity = _registry.create();
 
         OriginComponent originComponent = {
@@ -105,6 +107,14 @@ bool GenMapApp::Startup()
 
         _studioNormalBlendingShader.compileMdlShader();
         _studioVertexArray.upload(_studioNormalBlendingShader, true);
+
+        auto offset = glm::length(center);
+        if (offset == 0.0f)
+        {
+            offset = 50.0f;
+        }
+
+        _cam.SetPosition(center + glm::vec3(0.0f, offset, 0.0f));
 
         return true;
     }
@@ -163,13 +173,127 @@ bool GenMapApp::Startup()
 
 bool showPhysicsDebug = false;
 
+void GenMapApp::HandleBspInput(
+    std::chrono::microseconds time,
+    const struct InputState &inputState)
+{
+    (void)time;
+
+    const float speed = 8.0f;
+
+    if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
+    {
+        _physics->JumpCharacter(_character, _cam.Up());
+    }
+
+    if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeyF8))
+    {
+        showPhysicsDebug = !showPhysicsDebug;
+    }
+
+    if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
+    {
+        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+        {
+            _physics->MoveCharacter(_character, _cam.Forward() + _cam.Left(), speed);
+        }
+        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+        {
+            _physics->MoveCharacter(_character, _cam.Back() + _cam.Left(), speed);
+        }
+        else
+        {
+            _physics->MoveCharacter(_character, _cam.Left(), speed);
+        }
+    }
+    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyRight] || inputState.KeyboardButtonStates[KeyboardButtons::KeyD])
+    {
+        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+        {
+            _physics->MoveCharacter(_character, _cam.Forward() + _cam.Right(), speed);
+        }
+        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+        {
+            _physics->MoveCharacter(_character, _cam.Back() + _cam.Right(), speed);
+        }
+        else
+        {
+            _physics->MoveCharacter(_character, _cam.Right(), speed);
+        }
+    }
+    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+    {
+        _physics->MoveCharacter(_character, _cam.Forward(), speed);
+    }
+    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+    {
+        _physics->MoveCharacter(_character, _cam.Back(), speed);
+    }
+    else
+    {
+        _physics->MoveCharacter(_character, glm::vec3(0.0f), speed);
+    }
+
+    auto m = _physics->GetMatrix(_character);
+    _cam.SetPosition(glm::vec3(m[3]) + glm::vec3(0.0f, 0.0f, 40.0f));
+}
+
+void GenMapApp::HandleMdlInput(
+    std::chrono::microseconds time,
+    const struct InputState &inputState)
+{
+    const float speed = 40.0f;
+    auto dt = float(double(time.count()) / 1000000.0);
+
+    auto pos = _cam.Position();
+
+    if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
+    {
+        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+        {
+            pos = pos + ((_cam.Forward() + _cam.Left()) * speed * dt);
+        }
+        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+        {
+            pos = pos + ((_cam.Back() + _cam.Left()) * speed * dt);
+        }
+        else
+        {
+            pos = pos + ((_cam.Left()) * speed * dt);
+        }
+    }
+    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyRight] || inputState.KeyboardButtonStates[KeyboardButtons::KeyD])
+    {
+        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+        {
+            pos = pos + ((_cam.Forward() + _cam.Right()) * speed * dt);
+        }
+        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+        {
+            pos = pos + ((_cam.Back() + _cam.Right()) * speed * dt);
+        }
+        else
+        {
+            pos = pos + ((_cam.Right()) * speed * dt);
+        }
+    }
+    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
+    {
+        pos = pos + ((_cam.Forward()) * speed * dt);
+    }
+    else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
+    {
+        pos = pos + ((_cam.Back()) * speed * dt);
+    }
+
+    _cam.SetPosition(pos);
+}
+
 bool GenMapApp::Tick(
     std::chrono::microseconds time,
     const struct InputState &inputState)
 {
     _physics->Step(time);
-
-    const float speed = 8.0f;
 
     if (IsMouseButtonPushed(inputState, MouseButtons::LeftButton))
     {
@@ -185,61 +309,11 @@ bool GenMapApp::Tick(
 
     if (_character.bodyIndex > 0)
     {
-        if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeySpace))
-        {
-            _physics->JumpCharacter(_character, _cam.Up());
-        }
-
-        if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeyF8))
-        {
-            showPhysicsDebug = !showPhysicsDebug;
-        }
-
-        if (inputState.KeyboardButtonStates[KeyboardButtons::KeyLeft] || inputState.KeyboardButtonStates[KeyboardButtons::KeyA])
-        {
-            if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
-            {
-                _physics->MoveCharacter(_character, _cam.Forward() + _cam.Left(), speed);
-            }
-            else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
-            {
-                _physics->MoveCharacter(_character, _cam.Back() + _cam.Left(), speed);
-            }
-            else
-            {
-                _physics->MoveCharacter(_character, _cam.Left(), speed);
-            }
-        }
-        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyRight] || inputState.KeyboardButtonStates[KeyboardButtons::KeyD])
-        {
-            if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
-            {
-                _physics->MoveCharacter(_character, _cam.Forward() + _cam.Right(), speed);
-            }
-            else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
-            {
-                _physics->MoveCharacter(_character, _cam.Back() + _cam.Right(), speed);
-            }
-            else
-            {
-                _physics->MoveCharacter(_character, _cam.Right(), speed);
-            }
-        }
-        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyUp] || inputState.KeyboardButtonStates[KeyboardButtons::KeyW])
-        {
-            _physics->MoveCharacter(_character, _cam.Forward(), speed);
-        }
-        else if (inputState.KeyboardButtonStates[KeyboardButtons::KeyDown] || inputState.KeyboardButtonStates[KeyboardButtons::KeyS])
-        {
-            _physics->MoveCharacter(_character, _cam.Back(), speed);
-        }
-        else
-        {
-            _physics->MoveCharacter(_character, glm::vec3(0.0f), speed);
-        }
-
-        auto m = _physics->GetMatrix(_character);
-        _cam.SetPosition(glm::vec3(m[3]) + glm::vec3(0.0f, 0.0f, 40.0f));
+        HandleBspInput(time, inputState);
+    }
+    else
+    {
+        HandleMdlInput(time, inputState);
     }
 
     _cam.ProcessMouseMovement(
@@ -680,6 +754,7 @@ void GenMapApp::RenderStudioModelsByRenderMode(
         shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
+    valve::hl1::MdlInstance _mdlInstance;
     for (auto entity : entities)
     {
         auto studioComponent = _registry.try_get<StudioComponent>(entity);

@@ -8,7 +8,7 @@ MdlInstance::MdlInstance() = default;
 
 MdlInstance::~MdlInstance() = default;
 
-glm::mat4 MdlInstance::_bonetransform[32] = {};
+glm::mat4 MdlInstance::_bonetransform[MAX_MDL_BONES] = {};
 
 float MdlInstance::Update(
     float prevFrame,
@@ -60,7 +60,7 @@ const glm::mat4 *MdlInstance::BuildSkeleton()
     static glm::vec3 pos4[MAX_MDL_BONES];
     static glm::quat q4[MAX_MDL_BONES];
 
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < MAX_MDL_BONES; i++)
     {
         _bonetransform[i] = glm::mat4(1.0f);
     }

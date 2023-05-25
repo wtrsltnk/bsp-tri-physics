@@ -90,12 +90,19 @@ protected:
         const glm::mat4 &matrix,
         std::chrono::microseconds time);
 
+    void HandleBspInput(
+        std::chrono::microseconds time,
+        const struct InputState &inputState);
+
+    void HandleMdlInput(
+        std::chrono::microseconds time,
+        const struct InputState &inputState);
+
 private:
     std::unique_ptr<IRenderer> _renderer;
     AssetManager _assets;
     std::string _map;
     valve::Asset *_rootAsset = nullptr;
-    valve::hl1::MdlInstance _mdlInstance;
     glm::mat4 _projectionMatrix = glm::mat4(1.0f);
     ShaderType _trailShader;
     ShaderType _skyShader;

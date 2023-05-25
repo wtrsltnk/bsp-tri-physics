@@ -891,12 +891,6 @@ void InputState::OnMouseButtonUp(
     }
 }
 
-void InputState::SetMousePointerPosition(
-    int x,
-    int y)
-{
-}
-
 int Run(IApplication *t)
 {
     auto app = CreateApplication(

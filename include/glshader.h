@@ -22,7 +22,8 @@ public:
 
     GLuint compile(
         const std::string &vertShaderStr,
-        const std::string &fragShaderStr);
+        const std::string &fragShaderStr,
+        int boneCount = 0);
 
     GLuint compileDefaultShader();
     GLuint compileBspShader();

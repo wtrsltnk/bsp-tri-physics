@@ -1,4 +1,5 @@
 
+#include "application.h"
 #include "genmapapp.h"
 
 int main(
@@ -11,7 +12,7 @@ int main(
 
     if (argc > 2)
     {
-        spdlog::debug("loading map {1} from {0}", argv[1], argv[2]);
+        spdlog::debug("loading {1} from {0}", argv[1], argv[2]);
         t.SetFilename(argv[1], argv[2]);
     }
     else if (argc > 1)

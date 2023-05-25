@@ -20,7 +20,8 @@ void ShaderType::use() const
 
 GLuint ShaderType::compile(
     const std::string &vertShaderStr,
-    const std::string &fragShaderStr)
+    const std::string &fragShaderStr,
+    int boneCount)
 {
     GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -93,7 +94,7 @@ GLuint ShaderType::compile(
 
         glGenBuffers(1, &_bonesBuffer);
         glBindBuffer(GL_UNIFORM_BUFFER, _bonesBuffer);
-        glBufferData(GL_UNIFORM_BUFFER, 32 * sizeof(glm::mat4), nullptr, GL_STREAM_DRAW);
+        glBufferData(GL_UNIFORM_BUFFER, boneCount * sizeof(glm::mat4), nullptr, GL_STREAM_DRAW);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -331,7 +332,7 @@ GLuint ShaderType::compileMdlShader()
         uniform mat4 u_matrix;
         uniform vec4 u_color;
         layout(std140) uniform BonesBlock {
-            mat4 u_bones[32];
+            mat4 u_bones[64];
         };
 
         out vec2 v_uv_tex;
@@ -366,7 +367,7 @@ GLuint ShaderType::compileMdlShader()
             color = texel0 * v_color;
         });
 
-    static GLuint defaultShader = compile(vshader, fshader);
+    static GLuint defaultShader = compile(vshader, fshader, 64);
 
     return defaultShader;
 }

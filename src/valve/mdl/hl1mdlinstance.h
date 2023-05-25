@@ -51,7 +51,7 @@ namespace valve
                 float prevFrame,
                 std::chrono::microseconds time);
 
-            static glm::mat4 _bonetransform[32];
+            static glm::mat4 _bonetransform[MAX_MDL_BONES];
 
             int _visibleModels[MAX_MDL_BODYPARTS];
 

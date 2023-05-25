@@ -163,10 +163,6 @@ struct InputState
     void OnMouseButtonUp(
         MouseButtons button,
         std::function<void()> func);
-
-    void SetMousePointerPosition(
-        int x,
-        int y);
 };
 
 bool IsKeyboardButtonPushed(
