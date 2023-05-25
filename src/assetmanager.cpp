@@ -2,6 +2,7 @@
 
 #include "valve/bsp/hl1bspasset.h"
 #include "valve/mdl/hl1mdlasset.h"
+#include "valve/spr/hl1sprasset.h"
 
 inline bool ends_with(
     std::string const &value,
@@ -31,6 +32,11 @@ valve::Asset *AssetManager::LoadAsset(
     if (ends_with(assetName, ".mdl"))
     {
         asset = new valve::hl1::MdlAsset(&_fs);
+    }
+
+    if (ends_with(assetName, ".spr"))
+    {
+        asset = new valve::hl1::SprAsset(&_fs);
     }
 
     if (asset != nullptr && asset->Load(assetName))

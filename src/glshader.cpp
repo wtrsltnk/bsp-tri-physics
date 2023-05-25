@@ -82,14 +82,20 @@ GLuint ShaderType::compile(
     glDeleteShader(vertShader);
     glDeleteShader(fragShader);
 
+    use();
+
     _matrixUniformId = glGetUniformLocation(_shaderId, "u_matrix");
     _colorUniformId = glGetUniformLocation(_shaderId, "u_color");
     _brightnessUniformId = glGetUniformLocation(_shaderId, "u_brightness");
 
+    GLint i;
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &i);
+
     _bonesUniformId = 0;
-    GLint uniform_block_index = glGetUniformBlockIndex(_shaderId, "u_bones");
-    if (uniform_block_index >= 0)
+    if (boneCount > 0)
     {
+        GLuint uniform_block_index = glGetUniformBlockIndex(_shaderId, "u_bones");
+
         glUniformBlockBinding(_shaderId, uniform_block_index, _bonesUniformId);
 
         glGenBuffers(1, &_bonesBuffer);
@@ -323,7 +329,7 @@ GLuint ShaderType::compileBspShader()
 
 GLuint ShaderType::compileMdlShader()
 {
-    const char *vshader = GLSL(
+    const char *mdlvshader = GLSL(
         in vec3 a_vertex;
         in vec3 a_color;
         in vec4 a_texcoords;
@@ -348,7 +354,7 @@ GLuint ShaderType::compileMdlShader()
             v_color = vec4(a_color, 1.0) * u_color;
         });
 
-    const char *fshader = GLSL(
+    const char *mdlfshader = GLSL(
         uniform sampler2D u_tex0;
         uniform sampler2D u_tex1;
         uniform float u_brightness;
@@ -362,12 +368,53 @@ GLuint ShaderType::compileMdlShader()
         void main() {
             vec4 texel0;
             vec4 texel1;
-            texel0 = texture2D(u_tex0, v_uv_tex);
-            texel1 = texture2D(u_tex1, v_uv_light) * u_brightness;
+            texel0 = texture2D(u_tex0, v_uv_tex) * u_brightness;
+            texel1 = texture2D(u_tex1, v_uv_light);
             color = texel0 * v_color;
         });
 
-    static GLuint defaultShader = compile(vshader, fshader, 64);
+    static GLuint defaultShader = compile(mdlvshader, mdlfshader, 64);
+
+    return defaultShader;
+}
+
+GLuint ShaderType::compileSprShader()
+{
+    const char *vshader = GLSL(
+        in vec3 a_vertex;
+        in vec3 a_color;
+        in vec4 a_texcoords;
+
+        uniform mat4 u_matrix;
+        uniform vec4 u_color;
+
+        out vec2 v_uv_tex;
+        out vec4 v_color;
+
+        void main() {
+            mat4 m = u_matrix;
+            gl_Position = m * vec4(a_vertex.xyz, 1.0);
+            v_uv_tex = a_texcoords.xy;
+            v_color = vec4(a_color, 1.0) * u_color;
+        });
+
+    const char *fshader = GLSL(
+        uniform sampler2D u_tex0;
+        uniform float u_brightness;
+
+        in vec2 v_uv_tex;
+        in vec4 v_color;
+
+        out vec4 color;
+
+        void main() {
+            vec4 texel0;
+            vec4 texel1;
+            texel0 = texture2D(u_tex0, v_uv_tex) * u_brightness;
+            color = texel0 * v_color;
+        });
+
+    static GLuint defaultShader = compile(vshader, fshader);
 
     return defaultShader;
 }

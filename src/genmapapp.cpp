@@ -1,7 +1,7 @@
 #include "genmapapp.h"
 
 #include "renderers/opengl/openglrenderer.hpp"
-#include "valve/mdl/hl1mdlasset.h"
+#include "valve/mdl/hl1mdlinstance.h"
 #include <application.h>
 #include <filesystem>
 #include <fstream>
@@ -50,7 +50,36 @@ bool GenMapApp::Startup()
 
     if (_rootAsset == nullptr)
     {
+        spdlog::info("Failed to load {}", _map);
+
         return false;
+    }
+
+    auto sprAsset = dynamic_cast<valve::hl1::SprAsset *>(_rootAsset);
+
+    if (sprAsset != nullptr)
+    {
+        const auto entity = _registry.create();
+
+        OriginComponent originComponent = {
+            .Origin = glm::vec3(0.0f),
+            .Angles = glm::vec3(0.0f),
+        };
+
+        _registry.assign<OriginComponent>(entity, originComponent);
+
+        RenderComponent rc = {0, {255, 255, 255}, RenderModes::NormalBlending};
+
+        _registry.assign<RenderComponent>(entity, rc);
+
+        _registry.assign<SpriteComponent>(entity, BuildSpriteComponent(sprAsset));
+
+        _spriteNormalBlendingShader.compileSprShader();
+        _spriteVertexArray.upload(_spriteNormalBlendingShader, false);
+
+        _cam.SetPosition(glm::vec3(0.0f, 10.0f, 0.0f));
+
+        return true;
     }
 
     auto mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(_rootAsset);
@@ -72,38 +101,7 @@ bool GenMapApp::Startup()
 
         _registry.assign<RenderComponent>(entity, rc);
 
-        StudioComponent sc = {
-            .AssetId = mdlAsset->Id(),
-            .FirstVertexInBuffer = static_cast<int>(_studioVertexArray.vertexCount()),
-            .VertexCount = static_cast<int>(mdlAsset->_vertices.size()),
-        };
-
-        sc.LightmapOffset = static_cast<int>(_lightmapIndices.size());
-        glActiveTexture(GL_TEXTURE1);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        for (size_t i = 0; i < mdlAsset->_lightmaps.size(); i++)
-        {
-            auto &tex = mdlAsset->_lightmaps[i];
-            _lightmapIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
-        }
-
-        sc.TextureOffset = static_cast<int>(_textureIndices.size());
-        glActiveTexture(GL_TEXTURE0);
-        for (size_t i = 0; i < mdlAsset->_textures.size(); i++)
-        {
-            auto &tex = mdlAsset->_textures[i];
-            _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
-        }
-
-        for (auto &vert : mdlAsset->_vertices)
-        {
-            _studioVertexArray
-                .bone(vert.bone)
-                .uvs(vert.texcoords)
-                .vertex(vert.position);
-        }
-
-        _registry.assign<StudioComponent>(entity, sc);
+        _registry.assign<StudioComponent>(entity, BuildStudioComponent(mdlAsset));
 
         _studioNormalBlendingShader.compileMdlShader();
         _studioVertexArray.upload(_studioNormalBlendingShader, true);
@@ -169,6 +167,71 @@ bool GenMapApp::Startup()
     }
 
     return false;
+}
+
+SpriteComponent GenMapApp::BuildSpriteComponent(
+    valve::hl1::SprAsset *sprAsset)
+{
+    SpriteComponent sc = {
+        .AssetId = sprAsset->Id(),
+        .FirstVertexInBuffer = static_cast<int>(_spriteVertexArray.vertexCount()),
+        .VertexCount = static_cast<int>(sprAsset->_vertices.size()),
+    };
+
+    sc.TextureOffset = static_cast<int>(_textureIndices.size());
+
+    glActiveTexture(GL_TEXTURE0);
+    for (size_t i = 0; i < sprAsset->_textures.size(); i++)
+    {
+        auto &tex = sprAsset->_textures[i];
+        _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
+    }
+
+    for (auto &vert : sprAsset->_vertices)
+    {
+        _spriteVertexArray
+            .uvs(vert.texcoords)
+            .vertex(vert.position);
+    }
+
+    return sc;
+}
+
+StudioComponent GenMapApp::BuildStudioComponent(
+    valve::hl1::MdlAsset *mdlAsset)
+{
+    StudioComponent sc = {
+        .AssetId = mdlAsset->Id(),
+        .FirstVertexInBuffer = static_cast<int>(_studioVertexArray.vertexCount()),
+        .VertexCount = static_cast<int>(mdlAsset->_vertices.size()),
+    };
+
+    sc.LightmapOffset = static_cast<int>(_lightmapIndices.size());
+    glActiveTexture(GL_TEXTURE1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    for (size_t i = 0; i < mdlAsset->_lightmaps.size(); i++)
+    {
+        auto &tex = mdlAsset->_lightmaps[i];
+        _lightmapIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
+    }
+
+    sc.TextureOffset = static_cast<int>(_textureIndices.size());
+    glActiveTexture(GL_TEXTURE0);
+    for (size_t i = 0; i < mdlAsset->_textures.size(); i++)
+    {
+        auto &tex = mdlAsset->_textures[i];
+        _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
+    }
+
+    for (auto &vert : mdlAsset->_vertices)
+    {
+        _studioVertexArray
+            .bone(vert.bone)
+            .uvs(vert.texcoords)
+            .vertex(vert.position);
+    }
+
+    return sc;
 }
 
 bool showPhysicsDebug = false;
@@ -364,6 +427,22 @@ bool GenMapApp::Tick(
 bool GenMapApp::RenderAsset(
     std::chrono::microseconds time)
 {
+    auto sprAsset = dynamic_cast<valve::hl1::SprAsset *>(_rootAsset);
+
+    if (sprAsset != nullptr)
+    {
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
+
+        auto m = _projectionMatrix * _cam.GetViewMatrix();
+
+        glDisable(GL_BLEND);
+
+        RenderSpritesByRenderMode(RenderModes::NormalBlending, _spriteNormalBlendingShader, m, time);
+
+        return true;
+    }
+
     auto mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(_rootAsset);
 
     if (mdlAsset != nullptr)
@@ -375,6 +454,7 @@ bool GenMapApp::RenderAsset(
         auto m = _projectionMatrix * _cam.GetViewMatrix();
 
         glDisable(GL_BLEND);
+
         RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m, time);
 
         return true;
@@ -464,6 +544,9 @@ glm::vec3 GenMapApp::SetupBsp(
     _studioNormalBlendingShader.compileMdlShader();
     _studioVertexArray.upload(_studioNormalBlendingShader, true);
 
+    _spriteNormalBlendingShader.compileSprShader();
+    _spriteVertexArray.upload(_spriteNormalBlendingShader, false);
+
     return origin;
 }
 
@@ -511,42 +594,18 @@ glm::vec3 GenMapApp::SetupEntities(
             }
             else
             {
-                auto mdlAsset = _assets.LoadAsset<valve::hl1::MdlAsset>(bspEntity.keyvalues["model"]);
+                auto asset = _assets.LoadAsset(bspEntity.keyvalues["model"]);
 
-                if (mdlAsset != nullptr)
+                auto sprAsset = dynamic_cast<valve::hl1::SprAsset *>(asset);
+                auto mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(asset);
+
+                if (sprAsset != nullptr)
                 {
-                    StudioComponent sc = {
-                        .AssetId = mdlAsset->Id(),
-                        .FirstVertexInBuffer = static_cast<int>(_studioVertexArray.vertexCount()),
-                        .VertexCount = static_cast<int>(mdlAsset->_vertices.size()),
-                    };
-
-                    sc.LightmapOffset = static_cast<int>(_lightmapIndices.size());
-                    glActiveTexture(GL_TEXTURE1);
-                    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-                    for (size_t i = 0; i < mdlAsset->_lightmaps.size(); i++)
-                    {
-                        auto &tex = mdlAsset->_lightmaps[i];
-                        _lightmapIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
-                    }
-
-                    sc.TextureOffset = static_cast<int>(_textureIndices.size());
-                    glActiveTexture(GL_TEXTURE0);
-                    for (size_t i = 0; i < mdlAsset->_textures.size(); i++)
-                    {
-                        auto &tex = mdlAsset->_textures[i];
-                        _textureIndices.push_back(_renderer->LoadTexture(tex->Width(), tex->Height(), tex->Bpp(), tex->Repeat(), tex->Data()));
-                    }
-
-                    for (auto &vert : mdlAsset->_vertices)
-                    {
-                        _studioVertexArray
-                            .bone(vert.bone)
-                            .uvs(vert.texcoords)
-                            .vertex(vert.position);
-                    }
-
-                    _registry.assign<StudioComponent>(entity, sc);
+                    _registry.assign<SpriteComponent>(entity, BuildSpriteComponent(sprAsset));
+                }
+                else if (mdlAsset != nullptr)
+                {
+                    _registry.assign<StudioComponent>(entity, BuildStudioComponent(mdlAsset));
                 }
             }
         }
@@ -638,16 +697,19 @@ void GenMapApp::RenderBsp(
     glDisable(GL_BLEND);
     RenderModelsByRenderMode(bspAsset, RenderModes::NormalBlending, _normalBlendingShader, m);
     RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m, time);
+    RenderSpritesByRenderMode(RenderModes::NormalBlending, _spriteNormalBlendingShader, m, time);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_DST_ALPHA);
     RenderModelsByRenderMode(bspAsset, RenderModes::TextureBlending, _solidBlendingShader, m);
     RenderStudioModelsByRenderMode(RenderModes::TextureBlending, _studioNormalBlendingShader, m, time);
+    RenderSpritesByRenderMode(RenderModes::TextureBlending, _spriteNormalBlendingShader, m, time);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     RenderModelsByRenderMode(bspAsset, RenderModes::SolidBlending, _solidBlendingShader, m);
     RenderStudioModelsByRenderMode(RenderModes::SolidBlending, _studioNormalBlendingShader, m, time);
+    RenderSpritesByRenderMode(RenderModes::SolidBlending, _spriteNormalBlendingShader, m, time);
 }
 
 bool GenMapApp::SetupRenderComponent(
@@ -731,6 +793,66 @@ void GenMapApp::RenderModelsByRenderMode(
             glDrawArrays(GL_TRIANGLE_FAN, _faces[i].firstVertex, _faces[i].vertexCount);
         }
     }
+}
+
+void GenMapApp::RenderSpritesByRenderMode(
+    RenderModes mode,
+    ShaderType &shader,
+    const glm::mat4 &matrix,
+    std::chrono::microseconds time)
+{
+    auto dt = float(double(time.count()) / 1000000.0);
+
+    auto entities = _registry.view<RenderComponent, SpriteComponent, OriginComponent>();
+
+    if (entities.empty())
+    {
+        return;
+    }
+
+    glDisable(GL_CULL_FACE);
+    shader.use();
+    shader.setupBrightness(2.0f);
+    shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+    for (auto entity : entities)
+    {
+        auto spriteComponent = _registry.try_get<SpriteComponent>(entity);
+
+        auto asset = _assets.GetAsset<valve::hl1::SprAsset>(spriteComponent->AssetId);
+
+        if (asset == nullptr)
+        {
+            continue;
+        }
+
+        if (!SetupRenderComponent(entity, mode, shader, matrix))
+        {
+            continue;
+        }
+
+        _spriteVertexArray.bind();
+
+        spriteComponent->Frame += (dt * 24.0f);
+
+        if (size_t(spriteComponent->Frame) >= asset->_faces.size())
+        {
+            spriteComponent->Frame = 0;
+        }
+
+        auto &face = asset->_faces[spriteComponent->Frame];
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, _textureIndices[spriteComponent->TextureOffset + face.texture]);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glDrawArrays(GL_TRIANGLE_FAN, spriteComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
+
+        _spriteVertexArray.unbind();
+    }
+    glEnable(GL_CULL_FACE);
 }
 
 void GenMapApp::RenderStudioModelsByRenderMode(

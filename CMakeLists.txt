@@ -96,6 +96,9 @@ add_executable(bsp-tri-physics
     src/valve/mdl/hl1mdlinstance.cpp
     src/valve/mdl/hl1mdlinstance.h
     src/valve/mdl/hl1mdltypes.h
+    src/valve/spr/hl1sprasset.cpp
+    src/valve/spr/hl1sprasset.h
+    src/valve/spr/hl1sprtypes.h
     src/vertexarray.cpp
 )
 

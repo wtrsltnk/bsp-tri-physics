@@ -21,6 +21,15 @@ struct ModelComponent
     int Model;
 };
 
+struct SpriteComponent
+{
+    long AssetId = 0;
+    int FirstVertexInBuffer;
+    int VertexCount;
+    int TextureOffset = 0;
+    float Frame = 0;
+};
+
 struct StudioComponent
 {
     // The bones are different for each instance of mdl so we need to manage

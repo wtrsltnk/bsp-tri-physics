@@ -6,7 +6,8 @@
 #include "entitycomponents.h"
 #include "physicsservice.hpp"
 #include "valve/bsp/hl1bspasset.h"
-#include "valve/mdl/hl1mdlinstance.h"
+#include "valve/mdl/hl1mdlasset.h"
+#include "valve/spr/hl1sprasset.h"
 
 #include <application.h>
 #include <chrono>
@@ -90,6 +91,12 @@ protected:
         const glm::mat4 &matrix,
         std::chrono::microseconds time);
 
+    void RenderSpritesByRenderMode(
+        RenderModes mode,
+        ShaderType &shader,
+        const glm::mat4 &matrix,
+        std::chrono::microseconds time);
+
     void HandleBspInput(
         std::chrono::microseconds time,
         const struct InputState &inputState);
@@ -109,9 +116,11 @@ private:
     BufferType _skyVertexBuffer;
     BufferType _vertexArray;
     BufferType _studioVertexArray;
+    BufferType _spriteVertexArray;
     GLuint _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
     ShaderType _normalBlendingShader;
     ShaderType _studioNormalBlendingShader;
+    ShaderType _spriteNormalBlendingShader;
     ShaderType _solidBlendingShader;
     BufferType _vertexBuffer;
     std::vector<GLuint> _textureIndices;
@@ -130,6 +139,12 @@ private:
         RenderModes mode,
         ShaderType &shader,
         const glm::mat4 &matrix);
+
+    StudioComponent BuildStudioComponent(
+        valve::hl1::MdlAsset *mdlAsset);
+
+    SpriteComponent BuildSpriteComponent(
+        valve::hl1::SprAsset *sprAsset);
 };
 
 #endif // GENMAPAPP_H

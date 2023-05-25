@@ -28,6 +28,7 @@ public:
     GLuint compileDefaultShader();
     GLuint compileBspShader();
     GLuint compileMdlShader();
+    GLuint compileSprShader();
     GLuint compileSkyShader();
 
     void setupMatrices(
