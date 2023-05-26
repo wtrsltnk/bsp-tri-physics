@@ -20,16 +20,6 @@
 #include <string>
 #include <vector>
 
-class FaceType
-{
-public:
-    GLuint firstVertex;
-    GLuint vertexCount;
-    GLuint textureIndex;
-    GLuint lightmapIndex;
-    int flags;
-};
-
 class GenMapApp : public IApplication
 {
 public:
@@ -79,6 +69,13 @@ protected:
         valve::hl1::BspAsset *bspAsset,
         std::chrono::microseconds time);
 
+    void RenderByRenderMode(
+        valve::hl1::BspAsset *bspAsset,
+        RenderModes mode,
+        ShaderType shaders[3],
+        const glm::mat4 &matrix,
+        std::chrono::microseconds time);
+
     void RenderModelsByRenderMode(
         valve::hl1::BspAsset *bspAsset,
         RenderModes mode,
@@ -125,8 +122,8 @@ private:
     BufferType _vertexBuffer;
     std::vector<GLuint> _textureIndices;
     std::vector<GLuint> _lightmapIndices;
-    std::vector<FaceType> _faces;
-    std::map<GLuint, FaceType> _facesByLightmapAtlas;
+    std::vector<valve::tFace> _faces;
+    std::map<GLuint, valve::tFace> _facesByLightmapAtlas;
     Camera _cam;
     entt::registry _registry;
     PhysicsService *_physics = nullptr;

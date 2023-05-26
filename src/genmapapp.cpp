@@ -50,7 +50,7 @@ bool GenMapApp::Startup()
 
     if (_rootAsset == nullptr)
     {
-        spdlog::info("Failed to load {}", _map);
+        spdlog::error("Failed to load {}", _map);
 
         return false;
     }
@@ -298,7 +298,7 @@ void GenMapApp::HandleBspInput(
     }
 
     auto m = _physics->GetMatrix(_character);
-    _cam.SetPosition(glm::vec3(m[3]) + glm::vec3(0.0f, 0.0f, 40.0f));
+    _cam.SetPosition(glm::vec3(m[3]) + glm::vec3(0.0f, 0.0f, 32.0f));
 }
 
 void GenMapApp::HandleMdlInput(
@@ -505,20 +505,20 @@ glm::vec3 GenMapApp::SetupBsp(
     {
         auto &face = bspAsset->_faces[f];
 
-        FaceType ft;
+        valve::tFace ft;
 
         ft.flags = face.flags;
         ft.firstVertex = 0;
         ft.vertexCount = 0;
-        ft.lightmapIndex = 0;
-        ft.textureIndex = 0;
+        ft.lightmap = 0;
+        ft.texture = 0;
 
-        if (face.flags == 0)
+        // if (face.flags == 0)
         {
             ft.firstVertex = _vertexBuffer.vertexCount();
             ft.vertexCount = face.vertexCount;
-            ft.lightmapIndex = static_cast<unsigned int>(f);
-            ft.textureIndex = face.texture;
+            ft.lightmap = static_cast<unsigned int>(f);
+            ft.texture = face.texture;
 
             for (int v = face.firstVertex; v < face.firstVertex + face.vertexCount; v++)
             {
@@ -577,7 +577,7 @@ glm::vec3 GenMapApp::SetupEntities(
             _cam.SetPosition(glm::vec3(x, y, z));
         }
 
-        if (bspEntity.keyvalues.count("model") != 0 && bspEntity.classname.rfind("func_", 0) != 0 && bspEntity.classname.rfind("hostage_entity", 0) != 0)
+        if (bspEntity.keyvalues.count("model") != 0 && bspEntity.classname.rfind("hostage_entity", 0) != 0)
         {
             ModelComponent mc = {
                 .AssetId = bspAsset->Id(),
@@ -648,6 +648,7 @@ glm::vec3 GenMapApp::SetupEntities(
         }
 
         auto angles = bspEntity.keyvalues.find("angles");
+        auto angle = bspEntity.keyvalues.find("angle");
         if (angles != bspEntity.keyvalues.end())
         {
             glm::vec3 anglesPosition;
@@ -656,11 +657,19 @@ glm::vec3 GenMapApp::SetupEntities(
 
             originComponent.Angles = anglesPosition;
         }
+        else if (angle != bspEntity.keyvalues.end())
+        {
+            float anglePosition;
+
+            std::istringstream(angle->second) >> anglePosition;
+
+            originComponent.Angles = glm::vec3(0.0f, anglePosition, 0.0f);
+        }
 
         _registry.assign<OriginComponent>(entity, originComponent);
     }
 
-    auto info_player_start = bspAsset->FindEntityByClassname("info_player_start");
+    auto info_player_start = bspAsset->FindEntityByClassname("info_player_deathmatch");
 
     glm::vec3 angles(0.0f);
     glm::vec3 origin(0.0f);
@@ -694,22 +703,43 @@ void GenMapApp::RenderBsp(
 
     auto m = _projectionMatrix * _cam.GetViewMatrix();
 
+    ShaderType shaders[3] = {
+        _normalBlendingShader,
+        _studioNormalBlendingShader,
+        _spriteNormalBlendingShader,
+    };
+
     glDisable(GL_BLEND);
-    RenderModelsByRenderMode(bspAsset, RenderModes::NormalBlending, _normalBlendingShader, m);
-    RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m, time);
-    RenderSpritesByRenderMode(RenderModes::NormalBlending, _spriteNormalBlendingShader, m, time);
+    RenderByRenderMode(bspAsset, RenderModes::NormalBlending, shaders, m, time);
+    RenderByRenderMode(bspAsset, RenderModes::ColorBlending, shaders, m, time);
+    RenderByRenderMode(bspAsset, RenderModes::GlowBlending, shaders, m, time);
+    RenderByRenderMode(bspAsset, RenderModes::AdditiveBlending, shaders, m, time);
+
+    ShaderType solidShaders[3] = {
+        _solidBlendingShader,
+        _studioNormalBlendingShader,
+        _spriteNormalBlendingShader,
+    };
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_DST_ALPHA);
-    RenderModelsByRenderMode(bspAsset, RenderModes::TextureBlending, _solidBlendingShader, m);
-    RenderStudioModelsByRenderMode(RenderModes::TextureBlending, _studioNormalBlendingShader, m, time);
-    RenderSpritesByRenderMode(RenderModes::TextureBlending, _spriteNormalBlendingShader, m, time);
+    RenderByRenderMode(bspAsset, RenderModes::TextureBlending, solidShaders, m, time);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    RenderModelsByRenderMode(bspAsset, RenderModes::SolidBlending, _solidBlendingShader, m);
-    RenderStudioModelsByRenderMode(RenderModes::SolidBlending, _studioNormalBlendingShader, m, time);
-    RenderSpritesByRenderMode(RenderModes::SolidBlending, _spriteNormalBlendingShader, m, time);
+    RenderByRenderMode(bspAsset, RenderModes::SolidBlending, solidShaders, m, time);
+}
+
+void GenMapApp::RenderByRenderMode(
+    valve::hl1::BspAsset *bspAsset,
+    RenderModes mode,
+    ShaderType shaders[3],
+    const glm::mat4 &matrix,
+    std::chrono::microseconds time)
+{
+    RenderModelsByRenderMode(bspAsset, mode, shaders[0], matrix);
+    RenderStudioModelsByRenderMode(mode, shaders[1], matrix, time);
+    RenderSpritesByRenderMode(mode, shaders[2], matrix, time);
 }
 
 bool GenMapApp::SetupRenderComponent(
@@ -785,10 +815,10 @@ void GenMapApp::RenderModelsByRenderMode(
             }
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, _textureIndices[_faces[i].textureIndex]);
+            glBindTexture(GL_TEXTURE_2D, _textureIndices[_faces[i].texture]);
 
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[_faces[i].lightmapIndex]);
+            glBindTexture(GL_TEXTURE_2D, _lightmapIndices[_faces[i].lightmap]);
 
             glDrawArrays(GL_TRIANGLE_FAN, _faces[i].firstVertex, _faces[i].vertexCount);
         }
@@ -840,7 +870,7 @@ void GenMapApp::RenderSpritesByRenderMode(
             spriteComponent->Frame = 0;
         }
 
-        auto &face = asset->_faces[spriteComponent->Frame];
+        auto &face = asset->_faces[size_t(spriteComponent->Frame)];
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, _textureIndices[spriteComponent->TextureOffset + face.texture]);
@@ -869,7 +899,7 @@ void GenMapApp::RenderStudioModelsByRenderMode(
     }
 
     shader.use();
-    shader.setupBrightness(2.0f);
+    shader.setupBrightness(1.0f);
 
     if (mode == RenderModes::NormalBlending)
     {

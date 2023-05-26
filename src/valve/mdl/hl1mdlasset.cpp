@@ -30,16 +30,18 @@ bool MdlAsset::Load(
 
     this->_header = (tMDLHeader *)data.data();
 
+    std::vector<byte> textureData;
+
     // preload textures
     if (this->_header->numtextures == 0)
     {
-        std::vector<byte> textureFile;
 
         auto textureFilename = filename.substr(0, filename.size() - 4) + "T.mdl";
+        auto fullTexturePath = std::filesystem::path(location) / textureFilename;
 
-        if (_fs->LoadFile(textureFilename, textureFile))
+        if (_fs->LoadFile(fullTexturePath.string(), textureData))
         {
-            this->_textureHeader = (tMDLHeader *)textureFile.data();
+            this->_textureHeader = (tMDLHeader *)textureData.data();
         }
         else
         {
@@ -48,6 +50,7 @@ bool MdlAsset::Load(
     }
     else
     {
+        textureData = data;
         this->_textureHeader = this->_header;
     }
 
@@ -71,9 +74,9 @@ bool MdlAsset::Load(
         }
     }
 
-    _textureData = Map<tMDLTexture>(data, _textureHeader->numtextures, _textureHeader->textureindex);
-    _skinRefData = Map<short>(data, _textureHeader->numskinref, _textureHeader->skinindex);
-    _skinFamilyData = Map<short>(data, _textureHeader->numskinref, _textureHeader->skinindex);
+    _textureData = Map<tMDLTexture>(textureData, _textureHeader->numtextures, _textureHeader->textureindex);
+    _skinRefData = Map<short>(textureData, _textureHeader->numskinref, _textureHeader->skinindex);
+    _skinFamilyData = Map<short>(textureData, _textureHeader->numskinref, _textureHeader->skinindex);
     _bodyPartData = Map<tMDLBodyParts>(data, _header->numbodyparts, _header->bodypartindex);
     _sequenceGroupData = Map<tMDLSequenceGroup>(data, _header->numseqgroups, _header->seqgroupindex);
     _sequenceData = Map<tMDLSequenceDescription>(data, _header->numseq, _header->seqindex);
