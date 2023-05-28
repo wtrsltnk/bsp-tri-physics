@@ -646,7 +646,6 @@ glm::vec3 GenMapApp::SetupEntities(
 
                 if (bspEntity.classname.rfind("func_wall", 0) == 0)
                 {
-                    spdlog::debug("classname = {}", bspEntity.classname);
                     GrabTriangles(bspAsset, mc.Model, triangles);
                 }
             }
@@ -819,7 +818,8 @@ bool GenMapApp::SetupRenderComponent(
 bool GenMapApp::SetupOriginComponent(
     const entt::entity &entity,
     ShaderType &shader,
-    const glm::mat4 &matrix)
+    const glm::mat4 &matrix,
+    float scale)
 {
     auto originComponent = _registry.get<OriginComponent>(entity);
 
@@ -828,6 +828,8 @@ bool GenMapApp::SetupOriginComponent(
     endm = glm::rotate(endm, glm::radians(originComponent.Angles.z), glm::vec3(1.0f, 0.0f, 0.0f));
     endm = glm::rotate(endm, glm::radians(originComponent.Angles.y), glm::vec3(0.0f, 0.0f, 1.0f));
     endm = glm::rotate(endm, glm::radians(originComponent.Angles.x), glm::vec3(0.0f, -1.0f, 0.0f));
+
+    endm = glm::scale(endm, glm::vec3(scale, scale, scale));
 
     shader.setupMatrices(endm);
 
@@ -931,7 +933,7 @@ void GenMapApp::RenderSpritesByRenderMode(
             continue;
         }
 
-        if (!SetupOriginComponent(entity, shader, matrix))
+        if (!SetupOriginComponent(entity, shader, matrix, spriteComponent->Scale))
         {
             continue;
         }
@@ -1017,7 +1019,7 @@ void GenMapApp::RenderStudioModelsByRenderMode(
             continue;
         }
 
-        if (!SetupOriginComponent(entity, shader, matrix))
+        if (!SetupOriginComponent(entity, shader, matrix, studioComponent->Scale))
         {
             continue;
         }

@@ -140,7 +140,8 @@ private:
     bool SetupOriginComponent(
         const entt::entity &entity,
         ShaderType &shader,
-        const glm::mat4 &matrix);
+        const glm::mat4 &matrix,
+        float scale = 1.0f);
 
     StudioComponent BuildStudioComponent(
         valve::hl1::MdlAsset *mdlAsset,
