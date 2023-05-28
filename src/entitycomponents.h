@@ -24,6 +24,7 @@ struct ModelComponent
 struct SpriteComponent
 {
     long AssetId = 0;
+    float Scale = 1.0f;
     int FirstVertexInBuffer;
     int VertexCount;
     int TextureOffset = 0;
@@ -36,6 +37,7 @@ struct StudioComponent
     // the data to the uniformbuffer in the instance, not the asset
     unsigned int _bonesBuffer;
     long AssetId = 0;
+    float Scale = 1.0f;
     int FirstVertexInBuffer;
     int VertexCount;
     int TextureOffset = 0;

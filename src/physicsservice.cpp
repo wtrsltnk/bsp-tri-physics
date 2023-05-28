@@ -153,8 +153,8 @@ public:
     btRigidBody *mMe = nullptr;
     // Assign some values, in some way
     float mShapeHalfHeight = 0.0f;
-    float mRadiusThreshold = 4.0f;
-    float mMaxCosGround = 0.0f;
+    float mRadiusThreshold = 8.0f;
+    float mMaxCosGround = 0.5f;
     bool mHaveGround = false;
     btVector3 mGroundPoint;
 };
@@ -173,6 +173,7 @@ btScalar FindGround::addSingleResult(
     if (colObj0->m_collisionObject == mMe && !mHaveGround)
     {
         const btTransform &transform = mMe->getWorldTransform();
+
         // Orthonormal basis (just rotations) => can just transpose to invert
         btMatrix3x3 invBasis = transform.getBasis().transpose();
         btVector3 localPoint = invBasis * (cp.m_positionWorldOnB - transform.getOrigin());
@@ -200,7 +201,6 @@ void PhysicsService::Step(
 
     while (timeInUs > (200000.0 / 60.0))
     {
-        // spdlog::info("  timeInMs = {}", timeInUs);
         mDynamicsWorld->stepSimulation(btScalar(1.0f / 60.0f), 1, btScalar(1.0f / 120.0f));
 
         timeInUs -= std::ceil(200000.0 / 60.0);
@@ -214,6 +214,7 @@ void PhysicsService::JumpCharacter(
 {
     FindGround callback;
     callback.mMe = _rigidBodies[component.bodyIndex];
+
     mDynamicsWorld->contactTest(_rigidBodies[component.bodyIndex], callback);
 
     if (callback.mHaveGround)

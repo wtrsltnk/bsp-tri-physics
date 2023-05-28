@@ -269,8 +269,8 @@ GLuint ShaderType::compileDefaultShader()
             vec4 texel0;
             vec4 texel1;
             texel0 = texture2D(u_tex0, v_uv_tex);
-            texel1 = texture2D(u_tex1, v_uv_light) * u_brightness;
-            color = texel0 * texel1 * v_color;
+            texel1 = texture2D(u_tex1, v_uv_light);
+            color = texel0 * (texel1 + (texel1 * u_brightness)) * v_color;
         }));
 
     static GLuint defaultShader = compile(vshader, fshader);
@@ -280,6 +280,8 @@ GLuint ShaderType::compileDefaultShader()
 
 GLuint ShaderType::compileBspShader()
 {
+    spdlog::debug("compiling BSP shader");
+
     const char *vshader = GLSL(
         in vec3 a_vertex;
         in vec3 a_color;
@@ -287,13 +289,13 @@ GLuint ShaderType::compileBspShader()
 
         uniform mat4 u_matrix;
 
-        out vec3 v_color;
+        out vec4 v_color;
         out vec2 v_uv_tex;
         out vec2 v_uv_light;
 
         void main() {
             gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
-            v_color = a_color;
+            v_color = vec4(a_color, 1.0f);
             v_uv_light = a_texcoords.xy;
             v_uv_tex = a_texcoords.zw;
         });
@@ -303,9 +305,9 @@ GLuint ShaderType::compileBspShader()
         uniform sampler2D u_tex1;
         uniform float u_brightness;
 
-        in vec3 v_color;
         in vec2 v_uv_tex;
         in vec2 v_uv_light;
+        in vec4 v_color;
 
         out vec4 color;
 
@@ -313,13 +315,11 @@ GLuint ShaderType::compileBspShader()
             vec4 texel0;
             vec4 texel1;
             texel0 = texture2D(u_tex0, v_uv_tex);
-            texel1 = texture2D(u_tex1, v_uv_light) * u_brightness;
-            vec4 tempcolor = texel0 * texel1;
+            texel1 = texture2D(u_tex1, v_uv_light);
             if (texel0.a < 0.1)
                 discard;
             else
-                tempcolor = vec4(texel0.rgb, 1.0) * vec4(texel1.rgb, 1.0) * vec4(v_color, 1.0);
-            color = tempcolor;
+                color = texel0 * (texel1 + (texel1 * u_brightness)) * v_color;
         });
 
     static GLuint defaultShader = compile(vshader, fshader);
@@ -329,6 +329,8 @@ GLuint ShaderType::compileBspShader()
 
 GLuint ShaderType::compileMdlShader()
 {
+    spdlog::debug("compiling MDL shader");
+
     const char *mdlvshader = GLSL(
         in vec3 a_vertex;
         in vec3 a_color;
@@ -368,9 +370,13 @@ GLuint ShaderType::compileMdlShader()
         void main() {
             vec4 texel0;
             vec4 texel1;
-            texel0 = texture2D(u_tex0, v_uv_tex) * u_brightness;
-            texel1 = texture2D(u_tex1, v_uv_light);
-            color = texel0 * v_color;
+            texel0 = texture2D(u_tex0, v_uv_tex);
+            texel1 = texture2D(u_tex1, v_uv_light) * u_brightness;
+            vec4 tempcolor = texel0 * v_color;
+            if (texel0.a < 0.1)
+                discard;
+            else
+                color = texel0 * v_color;
         });
 
     static GLuint defaultShader = compile(mdlvshader, mdlfshader, 64);
@@ -380,6 +386,8 @@ GLuint ShaderType::compileMdlShader()
 
 GLuint ShaderType::compileSprShader()
 {
+    spdlog::debug("compiling SPR shader");
+
     const char *vshader = GLSL(
         in vec3 a_vertex;
         in vec3 a_color;
@@ -392,8 +400,7 @@ GLuint ShaderType::compileSprShader()
         out vec4 v_color;
 
         void main() {
-            mat4 m = u_matrix;
-            gl_Position = m * vec4(a_vertex.xyz, 1.0);
+            gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
             v_uv_tex = a_texcoords.xy;
             v_color = vec4(a_color, 1.0) * u_color;
         });
@@ -411,7 +418,10 @@ GLuint ShaderType::compileSprShader()
             vec4 texel0;
             vec4 texel1;
             texel0 = texture2D(u_tex0, v_uv_tex) * u_brightness;
-            color = texel0 * v_color;
+            if (texel0.a < 0.1)
+                discard;
+            else
+                color = texel0 * v_color;
         });
 
     static GLuint defaultShader = compile(vshader, fshader);

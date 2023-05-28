@@ -72,20 +72,21 @@ bool SprAsset::Load(
 
             tSPRFrame *frame = (tSPRFrame *)tmp;
             tmp += sizeof(tSPRFrame);
-            unsigned char *textureData = new unsigned char[frame->width * frame->height * 3];
+            unsigned char *textureData = new unsigned char[frame->width * frame->height * 4];
             for (int y = 0; y < frame->height; y++)
             {
                 for (int x = 0; x < frame->width; x++)
                 {
                     int item = x * frame->height + y;
                     unsigned char index = tmp[item];
-                    textureData[item * 3] = palette[index * 3];
-                    textureData[item * 3 + 1] = palette[index * 3 + 1];
-                    textureData[item * 3 + 2] = palette[index * 3 + 2];
+                    textureData[item * 4] = palette[index * 3];
+                    textureData[item * 4 + 1] = palette[index * 3 + 1];
+                    textureData[item * 4 + 2] = palette[index * 3 + 2];
+                    textureData[item * 4 + 3] = (item == 255 ? 0 : 255);
                 }
             }
             auto tex = new Texture();
-            tex->SetData(frame->width, frame->height, 3, textureData);
+            tex->SetData(frame->width, frame->height, 4, textureData);
             _textures.push_back(tex);
 
             delete[] textureData;

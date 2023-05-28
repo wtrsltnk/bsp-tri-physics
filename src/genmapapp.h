@@ -125,6 +125,7 @@ private:
     std::vector<valve::tFace> _faces;
     std::map<GLuint, valve::tFace> _facesByLightmapAtlas;
     Camera _cam;
+    bool _physicsCameraMode = false;
     entt::registry _registry;
     PhysicsService *_physics = nullptr;
     PhysicsComponent _character;
@@ -134,14 +135,25 @@ private:
     bool SetupRenderComponent(
         const entt::entity &entity,
         RenderModes mode,
+        ShaderType &shader);
+
+    bool SetupOriginComponent(
+        const entt::entity &entity,
         ShaderType &shader,
         const glm::mat4 &matrix);
 
     StudioComponent BuildStudioComponent(
-        valve::hl1::MdlAsset *mdlAsset);
+        valve::hl1::MdlAsset *mdlAsset,
+        float scale = 1.0f);
 
     SpriteComponent BuildSpriteComponent(
-        valve::hl1::SprAsset *sprAsset);
+        valve::hl1::SprAsset *sprAsset,
+        float scale = 1.0f);
+
+    void GrabTriangles(
+        valve::hl1::BspAsset *bspAsset,
+        int moddelIndex,
+        std::vector<glm::vec3> &triangles);
 };
 
 #endif // GENMAPAPP_H
