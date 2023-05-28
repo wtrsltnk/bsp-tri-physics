@@ -16,25 +16,25 @@ The following render modes are supported by the GoldSrc engine.
 
 ### NormalBlending = 0
 
-![Example of normal blending in GoldSrc](NormalBlending.png)
+![Example of normal blending in GoldSrc](docs/NormalBlending.png)
 
 The ``FX Amount`` is set to 128 on the cycler_sprite and env_sprite, and 255 on the brush.
 
 ### ColorBlending = 1
 
-![Example of color blending in GoldSrc](ColorBlending.png)
+![Example of color blending in GoldSrc](docs/ColorBlending.png)
 
 The ``FX Amount`` is set to 128 on the cycler_sprite and env_sprite, and 255 on the brush.
 
 ### TextureBlending = 2
 
-![Example of texture blending in GoldSrc](TextureBlending.png)
+![Example of texture blending in GoldSrc](docs/TextureBlending.png)
 
 The ``FX Amount`` is set to 128 on the cycler_sprite and env_sprite, and 255 on the brush.
 
 ### GlowBlending = 3
 
-![Example of glow blending in GoldSrc](GlowBlending.png)
+![Example of glow blending in GoldSrc](docs/GlowBlending.png)
 
 The ``FX Amount`` is set to 128 on the cycler_sprite and env_sprite, and 255 on the brush.
 
@@ -42,12 +42,12 @@ Only sprite can be set to glow, an MDL of a gemetry model will trigger an erro i
 
 ### SolidBlending = 4
 
-![Example of solid blending in GoldSrc](SolidBlending.png)
+![Example of solid blending in GoldSrc](docs/SolidBlending.png)
 
 The ``FX Amount`` is set to 255 on all the entities.
 
 ### AdditiveBlending = 5
 
-![Example of additive blending in GoldSrc](AdditiveBlending.png)
+![Example of additive blending in GoldSrc](docs/AdditiveBlending.png)
 
 The ``FX Amount`` is set to 128 on the cycler_sprite and env_sprite, and 255 on the brush.
