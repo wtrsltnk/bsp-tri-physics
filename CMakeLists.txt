@@ -100,6 +100,7 @@ add_executable(bsp-tri-physics
     src/valve/spr/hl1sprasset.h
     src/valve/spr/hl1sprtypes.h
     src/vertexarray.cpp
+    README.md
 )
 
 if(WIN32)

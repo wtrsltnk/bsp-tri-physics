@@ -4,7 +4,7 @@
 "classname" "worldspawn"
 "MaxRange" "4096"
 "mapversion" "220"
-"wad" "\games\counter-strike1.3\cstrike\cstrike.wad;\games\counter-strike1.3\valve\halflife.wad"
+"wad" "\games\counter-strike1.3\cstrike\cstrike.wad;\games\counter-strike1.3\valve\halflife.wad;\games\counter-strike1.3\cstrike\cs_cbble.wad"
 {
 ( 512 -896 0 ) ( -192 -896 0 ) ( -192 0 0 ) -0CSTRIKE_CA2ST [ 1 0 0 64 ] [ 0 -1 0 64 ] 0 1 1 
 ( 512 0 -64 ) ( -192 0 -64 ) ( -192 -896 -64 ) -0CSTRIKE_CA2ST [ 1 0 0 64 ] [ 0 -1 0 64 ] 0 1 1 
