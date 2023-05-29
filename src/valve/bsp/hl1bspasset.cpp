@@ -457,7 +457,6 @@ bool BspAsset::LoadTextures(
                 // Do we need a transparent pixel
                 if (tex->Name()[0] == '{' && b >= 255)
                 {
-                    r = 255;
                     r = g = b = a = 0;
                 }
 

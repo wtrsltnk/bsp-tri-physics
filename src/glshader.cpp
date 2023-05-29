@@ -84,7 +84,9 @@ GLuint ShaderType::compile(
 
     use();
 
-    _matrixUniformId = glGetUniformLocation(_shaderId, "u_matrix");
+    _projUniformId = glGetUniformLocation(_shaderId, "u_proj");
+    _viewUniformId = glGetUniformLocation(_shaderId, "u_view");
+    _modelUniformId = glGetUniformLocation(_shaderId, "u_model");
     _colorUniformId = glGetUniformLocation(_shaderId, "u_color");
     _brightnessUniformId = glGetUniformLocation(_shaderId, "u_brightness");
 
@@ -108,11 +110,15 @@ GLuint ShaderType::compile(
 }
 
 void ShaderType::setupMatrices(
-    const glm::mat4 &matrix)
+    const glm::mat4 &proj,
+    const glm::mat4 &view,
+    const glm::mat4 &model)
 {
     use();
 
-    glUniformMatrix4fv(_matrixUniformId, 1, false, glm::value_ptr(matrix));
+    glUniformMatrix4fv(_projUniformId, 1, false, glm::value_ptr(proj));
+    glUniformMatrix4fv(_viewUniformId, 1, false, glm::value_ptr(view));
+    glUniformMatrix4fv(_modelUniformId, 1, false, glm::value_ptr(model));
 }
 
 void ShaderType::setupColor(
@@ -240,7 +246,9 @@ GLuint ShaderType::compileDefaultShader()
         in vec3 a_color;
         in vec4 a_texcoords;
 
-        uniform mat4 u_matrix;
+        uniform mat4 u_proj;
+        uniform mat4 u_view;
+        uniform mat4 u_model;
         uniform vec4 u_color;
 
         out vec2 v_uv_tex;
@@ -248,7 +256,8 @@ GLuint ShaderType::compileDefaultShader()
         out vec4 v_color;
 
         void main() {
-            gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
+            mat4 m = u_proj * u_view * u_model;
+            gl_Position = m * vec4(a_vertex.xyz, 1.0);
             v_uv_light = a_texcoords.xy;
             v_uv_tex = a_texcoords.zw;
             v_color = vec4(a_color, 1.0) * u_color;
@@ -269,8 +278,8 @@ GLuint ShaderType::compileDefaultShader()
             vec4 texel0;
             vec4 texel1;
             texel0 = texture2D(u_tex0, v_uv_tex);
-            texel1 = texture2D(u_tex1, v_uv_light);
-            color = texel0 * (texel1 + (texel1 * u_brightness)) * v_color;
+            texel1 = texture2D(u_tex1, v_uv_light) + vec4(u_brightness, u_brightness, u_brightness, u_brightness);
+            color = texel0 * texel1 * v_color;
         }));
 
     static GLuint defaultShader = compile(vshader, fshader);
@@ -287,14 +296,17 @@ GLuint ShaderType::compileBspShader()
         in vec3 a_color;
         in vec4 a_texcoords;
 
-        uniform mat4 u_matrix;
+        uniform mat4 u_proj;
+        uniform mat4 u_view;
+        uniform mat4 u_model;
 
         out vec4 v_color;
         out vec2 v_uv_tex;
         out vec2 v_uv_light;
 
         void main() {
-            gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
+            mat4 m = u_proj * u_view * u_model;
+            gl_Position = m * vec4(a_vertex.xyz, 1.0);
             v_color = vec4(a_color, 1.0f);
             v_uv_light = a_texcoords.xy;
             v_uv_tex = a_texcoords.zw;
@@ -319,7 +331,7 @@ GLuint ShaderType::compileBspShader()
             if (texel0.a < 0.1)
                 discard;
             else
-                color = texel0 * (texel1 + (texel1 * u_brightness)) * v_color;
+                color = texel0 * texel1 * vec4(1.0, 1.0, 1.0, u_brightness) * v_color;
         });
 
     static GLuint defaultShader = compile(vshader, fshader);
@@ -337,7 +349,9 @@ GLuint ShaderType::compileMdlShader()
         in vec4 a_texcoords;
         in int a_bone;
 
-        uniform mat4 u_matrix;
+        uniform mat4 u_proj;
+        uniform mat4 u_view;
+        uniform mat4 u_model;
         uniform vec4 u_color;
         layout(std140) uniform BonesBlock {
             mat4 u_bones[64];
@@ -348,7 +362,7 @@ GLuint ShaderType::compileMdlShader()
         out vec4 v_color;
 
         void main() {
-            mat4 m = u_matrix;
+            mat4 m = u_proj * u_view * u_model;
             if (a_bone >= 0) m = m * u_bones[a_bone];
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
             v_uv_light = a_texcoords.zw;
@@ -393,14 +407,17 @@ GLuint ShaderType::compileSprShader()
         in vec3 a_color;
         in vec4 a_texcoords;
 
-        uniform mat4 u_matrix;
+        uniform mat4 u_proj;
+        uniform mat4 u_view;
+        uniform mat4 u_model;
         uniform vec4 u_color;
 
         out vec2 v_uv_tex;
         out vec4 v_color;
 
         void main() {
-            gl_Position = u_matrix * vec4(a_vertex.xyz, 1.0);
+            mat4 m = u_proj * u_view * u_model;
+            gl_Position = m * vec4(a_vertex.xyz, 1.0);
             v_uv_tex = a_texcoords.xy;
             v_color = vec4(a_color, 1.0) * u_color;
         });
@@ -436,13 +453,16 @@ GLuint ShaderType::compileSkyShader()
         in vec3 a_color;
         in vec4 a_texcoords;
 
-        uniform mat4 u_matrix;
+        uniform mat4 u_proj;
+        uniform mat4 u_view;
+        uniform mat4 u_model;
 
         out vec3 v_color;
         out vec2 v_texCoord;
 
         void main() {
-            gl_Position = u_matrix * vec4(a_vertex, 1.0);
+            mat4 m = u_proj * u_view * u_model;
+            gl_Position = m * vec4(a_vertex, 1.0);
             v_color = a_color;
             v_texCoord = a_texcoords.xy;
         });

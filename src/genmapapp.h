@@ -73,25 +73,21 @@ protected:
         valve::hl1::BspAsset *bspAsset,
         RenderModes mode,
         ShaderType shaders[3],
-        const glm::mat4 &matrix,
         std::chrono::microseconds time);
 
     void RenderModelsByRenderMode(
         valve::hl1::BspAsset *bspAsset,
         RenderModes mode,
-        ShaderType &shader,
-        const glm::mat4 &matrix);
+        ShaderType &shader);
 
     void RenderStudioModelsByRenderMode(
         RenderModes mode,
         ShaderType &shader,
-        const glm::mat4 &matrix,
         std::chrono::microseconds time);
 
     void RenderSpritesByRenderMode(
         RenderModes mode,
         ShaderType &shader,
-        const glm::mat4 &matrix,
         std::chrono::microseconds time);
 
     void HandleBspInput(
@@ -140,7 +136,6 @@ private:
     bool SetupOriginComponent(
         const entt::entity &entity,
         ShaderType &shader,
-        const glm::mat4 &matrix,
         float scale = 1.0f);
 
     StudioComponent BuildStudioComponent(

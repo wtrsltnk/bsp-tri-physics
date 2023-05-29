@@ -392,7 +392,7 @@ bool GenMapApp::Tick(
 
         auto m = glm::scale(_physics->GetMatrix(physicsComponent), glm::vec3(3.0f));
 
-        _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * m);
+        _trailShader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), m);
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
@@ -407,7 +407,11 @@ bool GenMapApp::Tick(
 
         vertexAndColorBuffer.upload();
 
-        _trailShader.setupMatrices(_projectionMatrix * _cam.GetViewMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / 0.08f, 1.0f / 0.08f, 1.0f / 0.08f)));
+        _trailShader.setupMatrices(
+            _projectionMatrix,
+            _cam.GetViewMatrix(),
+            glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / 0.08f, 1.0f / 0.08f, 1.0f / 0.08f)));
+
         glDisable(GL_DEPTH_TEST);
         vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
         glEnable(GL_DEPTH_TEST);
@@ -426,11 +430,9 @@ bool GenMapApp::RenderAsset(
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
 
-        auto m = _projectionMatrix * _cam.GetViewMatrix();
-
         glDisable(GL_BLEND);
 
-        RenderSpritesByRenderMode(RenderModes::NormalBlending, _spriteNormalBlendingShader, m, time);
+        RenderSpritesByRenderMode(RenderModes::NormalBlending, _spriteNormalBlendingShader, time);
 
         return true;
     }
@@ -443,11 +445,9 @@ bool GenMapApp::RenderAsset(
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
 
-        auto m = _projectionMatrix * _cam.GetViewMatrix();
-
         glDisable(GL_BLEND);
 
-        RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, m, time);
+        RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, time);
 
         return true;
     }
@@ -753,8 +753,6 @@ void GenMapApp::RenderBsp(
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
 
-    auto m = _projectionMatrix * _cam.GetViewMatrix();
-
     ShaderType shaders[3] = {
         _normalBlendingShader,
         _studioNormalBlendingShader,
@@ -768,30 +766,29 @@ void GenMapApp::RenderBsp(
     };
 
     glDisable(GL_BLEND);
-    RenderByRenderMode(bspAsset, RenderModes::NormalBlending, shaders, m, time);
+    RenderByRenderMode(bspAsset, RenderModes::NormalBlending, shaders, time);
 
-    RenderModelsByRenderMode(bspAsset, RenderModes::ColorBlending, _normalBlendingShader, m);
+    RenderModelsByRenderMode(bspAsset, RenderModes::ColorBlending, _normalBlendingShader);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    RenderSpritesByRenderMode(RenderModes::GlowBlending, _spriteNormalBlendingShader, m, time);
-    RenderByRenderMode(bspAsset, RenderModes::AdditiveBlending, solidShaders, m, time);
-    RenderByRenderMode(bspAsset, RenderModes::TextureBlending, solidShaders, m, time);
+    RenderSpritesByRenderMode(RenderModes::GlowBlending, _spriteNormalBlendingShader, time);
+    RenderByRenderMode(bspAsset, RenderModes::AdditiveBlending, solidShaders, time);
+    RenderByRenderMode(bspAsset, RenderModes::TextureBlending, solidShaders, time);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    RenderByRenderMode(bspAsset, RenderModes::SolidBlending, shaders, m, time);
+    RenderByRenderMode(bspAsset, RenderModes::SolidBlending, shaders, time);
 }
 
 void GenMapApp::RenderByRenderMode(
     valve::hl1::BspAsset *bspAsset,
     RenderModes mode,
     ShaderType shaders[3],
-    const glm::mat4 &matrix,
     std::chrono::microseconds time)
 {
-    RenderModelsByRenderMode(bspAsset, mode, shaders[0], matrix);
-    RenderStudioModelsByRenderMode(mode, shaders[1], matrix, time);
-    RenderSpritesByRenderMode(mode, shaders[2], matrix, time);
+    RenderModelsByRenderMode(bspAsset, mode, shaders[0]);
+    RenderStudioModelsByRenderMode(mode, shaders[1], time);
+    RenderSpritesByRenderMode(mode, shaders[2], time);
 }
 
 bool GenMapApp::SetupRenderComponent(
@@ -811,6 +808,15 @@ bool GenMapApp::SetupRenderComponent(
         shader.setupColor(
             glm::vec4(1.0f, 1.0f, 1.0f, float(renderComponent.Amount) / 255.0f));
     }
+    else if (mode == RenderModes::ColorBlending)
+    {
+        shader.setupColor(
+            glm::vec4(
+                float(renderComponent.Color[0] / 255.0f),
+                float(renderComponent.Color[1] / 255.0f),
+                float(renderComponent.Color[2] / 255.0f),
+                float(renderComponent.Amount) / 255.0f));
+    }
 
     return true;
 }
@@ -818,12 +824,11 @@ bool GenMapApp::SetupRenderComponent(
 bool GenMapApp::SetupOriginComponent(
     const entt::entity &entity,
     ShaderType &shader,
-    const glm::mat4 &matrix,
     float scale)
 {
     auto originComponent = _registry.get<OriginComponent>(entity);
 
-    auto endm = glm::translate(matrix, originComponent.Origin);
+    auto endm = glm::translate(glm::mat4(1.0f), originComponent.Origin);
 
     endm = glm::rotate(endm, glm::radians(originComponent.Angles.z), glm::vec3(1.0f, 0.0f, 0.0f));
     endm = glm::rotate(endm, glm::radians(originComponent.Angles.y), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -831,7 +836,7 @@ bool GenMapApp::SetupOriginComponent(
 
     endm = glm::scale(endm, glm::vec3(scale, scale, scale));
 
-    shader.setupMatrices(endm);
+    shader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), endm);
 
     return true;
 }
@@ -839,8 +844,7 @@ bool GenMapApp::SetupOriginComponent(
 void GenMapApp::RenderModelsByRenderMode(
     valve::hl1::BspAsset *bspAsset,
     RenderModes mode,
-    ShaderType &shader,
-    const glm::mat4 &matrix)
+    ShaderType &shader)
 {
     if (mode == RenderModes::GlowBlending)
     {
@@ -855,7 +859,7 @@ void GenMapApp::RenderModelsByRenderMode(
     }
 
     shader.use();
-    shader.setupBrightness(0.8f);
+    shader.setupBrightness(0.5f);
 
     if (mode == RenderModes::NormalBlending)
     {
@@ -869,7 +873,7 @@ void GenMapApp::RenderModelsByRenderMode(
             continue;
         }
 
-        if (!SetupOriginComponent(entity, shader, matrix))
+        if (!SetupOriginComponent(entity, shader))
         {
             continue;
         }
@@ -900,7 +904,6 @@ void GenMapApp::RenderModelsByRenderMode(
 void GenMapApp::RenderSpritesByRenderMode(
     RenderModes mode,
     ShaderType &shader,
-    const glm::mat4 &matrix,
     std::chrono::microseconds time)
 {
     auto dt = float(double(time.count()) / 1000000.0);
@@ -933,7 +936,7 @@ void GenMapApp::RenderSpritesByRenderMode(
             continue;
         }
 
-        if (!SetupOriginComponent(entity, shader, matrix, spriteComponent->Scale))
+        if (!SetupOriginComponent(entity, shader, spriteComponent->Scale))
         {
             continue;
         }
@@ -965,7 +968,6 @@ void GenMapApp::RenderSpritesByRenderMode(
 void GenMapApp::RenderStudioModelsByRenderMode(
     RenderModes mode,
     ShaderType &shader,
-    const glm::mat4 &matrix,
     std::chrono::microseconds time)
 {
     if (mode == RenderModes::GlowBlending)
@@ -1019,7 +1021,7 @@ void GenMapApp::RenderStudioModelsByRenderMode(
             continue;
         }
 
-        if (!SetupOriginComponent(entity, shader, matrix, studioComponent->Scale))
+        if (!SetupOriginComponent(entity, shader, studioComponent->Scale))
         {
             continue;
         }
@@ -1183,7 +1185,10 @@ void GenMapApp::RenderSky()
 
     _skyShader.use();
 
-    _skyShader.setupMatrices(_projectionMatrix * (_cam.GetViewMatrix() * glm::rotate(glm::translate(glm::mat4(1.0f), _cam.Position()), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))));
+    _skyShader.setupMatrices(
+        _projectionMatrix,
+        _cam.GetViewMatrix(),
+        glm::rotate(glm::translate(glm::mat4(1.0f), _cam.Position()), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)));
 
     _skyVertexBuffer.bind();
     glActiveTexture(GL_TEXTURE0);

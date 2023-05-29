@@ -32,7 +32,9 @@ public:
     GLuint compileSkyShader();
 
     void setupMatrices(
-        const glm::mat4 &matrix);
+        const glm::mat4 &proj,
+        const glm::mat4 &view,
+        const glm::mat4 &model);
 
     void setupColor(
         const glm::vec4 &color);
@@ -52,7 +54,9 @@ public:
 
 private:
     GLuint _shaderId = 0;
-    GLuint _matrixUniformId = 0;
+    GLuint _projUniformId = 0;
+    GLuint _viewUniformId = 0;
+    GLuint _modelUniformId = 0;
     GLuint _colorUniformId = 0;
     GLuint _brightnessUniformId = 0;
     GLuint _bonesUniformId = 0;
