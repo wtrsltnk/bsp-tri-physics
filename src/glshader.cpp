@@ -3,6 +3,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <spdlog/spdlog.h>
+#include <string>
 
 ShaderType::ShaderType() = default;
 
@@ -416,8 +417,26 @@ GLuint ShaderType::compileSprShader()
         out vec4 v_color;
 
         void main() {
-            mat4 m = u_proj * u_view * u_model;
+            mat4 viewmodel = u_view * u_model;
+
+            // First colunm.
+            viewmodel[0][0] = 1.0;
+            viewmodel[0][1] = 0.0;
+            viewmodel[0][2] = 0.0;
+
+            // Second colunm.
+            viewmodel[2][0] = 0.0;
+            viewmodel[2][1] = 1.0;
+            viewmodel[2][2] = 0.0;
+
+            // Thrid colunm.
+            viewmodel[1][0] = 0.0;
+            viewmodel[1][1] = 0.0;
+            viewmodel[1][2] = 1.0;
+
+            mat4 m = u_proj * viewmodel;
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
+
             v_uv_tex = a_texcoords.xy;
             v_color = vec4(a_color, 1.0) * u_color;
         });

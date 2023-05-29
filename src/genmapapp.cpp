@@ -828,15 +828,15 @@ bool GenMapApp::SetupOriginComponent(
 {
     auto originComponent = _registry.get<OriginComponent>(entity);
 
-    auto endm = glm::translate(glm::mat4(1.0f), originComponent.Origin);
+    auto modelMatrix = glm::translate(glm::mat4(1.0f), originComponent.Origin);
 
-    endm = glm::rotate(endm, glm::radians(originComponent.Angles.z), glm::vec3(1.0f, 0.0f, 0.0f));
-    endm = glm::rotate(endm, glm::radians(originComponent.Angles.y), glm::vec3(0.0f, 0.0f, 1.0f));
-    endm = glm::rotate(endm, glm::radians(originComponent.Angles.x), glm::vec3(0.0f, -1.0f, 0.0f));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(originComponent.Angles.z), glm::vec3(1.0f, 0.0f, 0.0f));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(originComponent.Angles.y), glm::vec3(0.0f, 0.0f, 1.0f));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(originComponent.Angles.x), glm::vec3(0.0f, -1.0f, 0.0f));
 
-    endm = glm::scale(endm, glm::vec3(scale, scale, scale));
+    modelMatrix = glm::scale(modelMatrix, glm::vec3(scale, scale, scale));
 
-    shader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), endm);
+    shader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), modelMatrix);
 
     return true;
 }
