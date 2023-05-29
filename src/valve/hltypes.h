@@ -102,6 +102,17 @@ namespace valve
 
     } tFace;
 
+    class IOpenFile
+    {
+    public:
+        virtual bool LoadBytes(
+            size_t count,
+            std::vector<byte> &data,
+            size_t offsetFromStart) = 0;
+
+        virtual void Close() = 0;
+    };
+
     class IFileSystem
     {
     public:
@@ -111,6 +122,9 @@ namespace valve
         virtual bool LoadFile(
             const std::string &filename,
             std::vector<byte> &data) = 0;
+
+        virtual valve::IOpenFile *OpenFile(
+            const std::string &filename) = 0;
 
         const std::filesystem::path &Root() const { return _root; }
 

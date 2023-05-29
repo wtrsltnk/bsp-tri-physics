@@ -14,18 +14,9 @@ WadAsset::WadAsset(
 
 WadAsset::~WadAsset()
 {
-    for (int i = 0; i < _header.lumpsCount; i++)
+    if (IsLoaded())
     {
-        if (_loadedLumps[i] != nullptr)
-        {
-            delete[](_loadedLumps[i]);
-            _loadedLumps[i] = nullptr;
-        }
-    }
-
-    if (_file.is_open())
-    {
-        _file.close();
+        _file->Close();
     }
 }
 
@@ -36,43 +27,50 @@ bool WadAsset::Load(
     _header.lumpsOffset = 0;
     _header.signature[0] = '\0';
 
-    _file.open(filename, std::ios::in | std::ios::binary | std::ios::ate);
-    if (!_file.is_open())
+    _file = _fs->OpenFile(filename);
+
+    if (_file == nullptr)
     {
         return false;
     }
 
-    if (_file.tellg() == 0)
+    std::vector<valve::byte> data;
+
+    if (!_file->LoadBytes(sizeof(tWADHeader), data, 0))
     {
-        _file.close();
+        _file->Close();
+
         return false;
     }
 
-    _file.seekg(0, std::ios::beg);
-    _file.read((char *)&_header, sizeof(tWADHeader));
+    _header = *reinterpret_cast<tWADHeader *>(data.data());
 
     if (std::string(_header.signature, 4) != HL1_WAD_SIGNATURE)
     {
-        _file.close();
+        _file->Close();
+
         return false;
     }
 
     _lumps = new tWADLump[_header.lumpsCount];
-    _file.seekg(_header.lumpsOffset, std::ios::beg);
-    _file.read((char *)_lumps, _header.lumpsCount * sizeof(tWADLump));
 
-    _loadedLumps = new byteptr[_header.lumpsCount];
-    for (int i = 0; i < _header.lumpsCount; i++)
+    if (!_file->LoadBytes(_header.lumpsCount * sizeof(tWADLump), data, _header.lumpsOffset))
     {
-        _loadedLumps[i] = nullptr;
+        _file->Close();
+
+        return false;
     }
+
+    memcpy(_lumps, data.data(), _header.lumpsCount * sizeof(tWADLump));
+
+    _loadedLumps.resize(_header.lumpsCount);
 
     return true;
 }
 
 bool WadAsset::IsLoaded() const
 {
-    return _file.is_open();
+    return _file != nullptr;
 }
 
 bool icasecmp(
@@ -91,8 +89,12 @@ int WadAsset::IndexOf(
     const std::string &name) const
 {
     for (int l = 0; l < _header.lumpsCount; ++l)
+    {
         if (icasecmp(name, _lumps[l].name))
+        {
             return l;
+        }
+    }
 
     return -1;
 }
@@ -101,16 +103,21 @@ valve::byteptr WadAsset::LumpData(
     int index)
 {
     if (index >= _header.lumpsCount || index < 0)
-        return nullptr;
-
-    if (_loadedLumps[index] == nullptr)
     {
-        _loadedLumps[index] = new byte[_lumps[index].size];
-        _file.seekg(_lumps[index].offset, std::ios::beg);
-        _file.read((char *)_loadedLumps[index], _lumps[index].size);
+        return nullptr;
     }
 
-    return _loadedLumps[index];
+    if (_loadedLumps[index].empty())
+    {
+        if (!_file->LoadBytes(_lumps[index].size, _loadedLumps[index], _lumps[index].offset))
+        {
+            _file->Close();
+
+            return nullptr;
+        }
+    }
+
+    return _loadedLumps[index].data();
 }
 
 std::vector<std::string> split(
@@ -121,8 +128,11 @@ std::vector<std::string> split(
 
     std::istringstream f(subject);
     std::string s;
+
     while (getline(f, s, delim))
+    {
         result.push_back(s);
+    }
 
     return result;
 }
@@ -136,12 +146,16 @@ void join(
     char const *delim = "\n")
 {
     if (first >= last)
+    {
         return;
+    }
 
     s << *first++;
 
     for (; first != last; ++first)
+    {
         s << delim << *first;
+    }
 }
 
 std::vector<WadAsset *> WadAsset::LoadWads(
@@ -187,24 +201,27 @@ std::string WadAsset::FindWad(
     std::replace(tmp.begin(), tmp.end(), '/', '\\');
     std::vector<std::string> wadComponents = split(tmp, '\\');
 
-    for (std::vector<std::string>::const_iterator i = hints.cbegin(); i != hints.cend(); ++i)
+    auto wadFile = wadComponents[wadComponents.size() - 1];
+    for (auto &hint : hints)
     {
-        std::string tmp = ((*i) + "\\" + wadComponents[wadComponents.size() - 1]);
-        std::ifstream f(tmp.c_str());
+        std::filesystem::path tmp = std::filesystem::path(hint) / wadFile;
+        std::ifstream f(tmp);
         if (f.good())
         {
             f.close();
-            return tmp;
+            return tmp.string();
         }
     }
 
+    auto modDir = wadComponents[wadComponents.size() - 2];
+
     // When the wad file is not found, we might wanna check original wad string for a possible mod directory
-    std::string lastTry = hints[hints.size() - 1] + "\\" + wadComponents[wadComponents.size() - 2] + "\\" + wadComponents[wadComponents.size() - 1];
-    std::ifstream f(lastTry.c_str());
+    std::filesystem::path lastTry = std::filesystem::path(hints[hints.size() - 1]) / modDir / wadFile;
+    std::ifstream f(lastTry);
     if (f.good())
     {
         f.close();
-        return lastTry;
+        return lastTry.string();
     }
 
     return wad;

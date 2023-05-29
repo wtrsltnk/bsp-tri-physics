@@ -46,10 +46,10 @@ namespace valve
                 std::vector<WadAsset *> &wads);
 
         private:
-            std::ifstream _file;
+            valve::IOpenFile *_file = nullptr;
             tWADHeader _header;
             tWADLump *_lumps = nullptr;
-            byteptr *_loadedLumps = nullptr;
+            std::vector<std::vector<byte>> _loadedLumps;
         };
 
     } // namespace hl1

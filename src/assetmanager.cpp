@@ -3,6 +3,9 @@
 #include "valve/bsp/hl1bspasset.h"
 #include "valve/mdl/hl1mdlasset.h"
 #include "valve/spr/hl1sprasset.h"
+#include <algorithm>
+#include <ranges>
+#include <string_view>
 
 inline bool ends_with(
     std::string const &value,
@@ -24,22 +27,25 @@ valve::Asset *AssetManager::LoadAsset(
 
     valve::Asset *asset = nullptr;
 
+    // TODO these compares are case sensitive
     if (ends_with(assetName, ".bsp"))
     {
         asset = new valve::hl1::BspAsset(&_fs);
     }
-
-    if (ends_with(assetName, ".mdl"))
+    else if (ends_with(assetName, ".mdl"))
     {
         asset = new valve::hl1::MdlAsset(&_fs);
     }
-
-    if (ends_with(assetName, ".spr"))
+    else if (ends_with(assetName, ".spr"))
     {
         asset = new valve::hl1::SprAsset(&_fs);
     }
+    else
+    {
+        return nullptr;
+    }
 
-    if (asset != nullptr && asset->Load(assetName))
+    if (asset->Load(assetName))
     {
         _loadedAssets.insert(std::make_pair(assetName, asset));
 

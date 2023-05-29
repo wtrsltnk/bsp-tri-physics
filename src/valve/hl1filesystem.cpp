@@ -60,6 +60,73 @@ bool FileSystemSearchPath::LoadFile(
     return true;
 }
 
+valve::IOpenFile *FileSystemSearchPath::OpenFile(
+    const std::string &filename)
+{
+    spdlog::debug("Opening file: {0}", filename);
+
+    std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
+
+    if (!file.is_open())
+    {
+        spdlog::error("File not found: {0}", filename);
+
+        return nullptr;
+    }
+
+    auto openFile = std::make_unique<FileSystemSearchPathOpenFile>();
+
+    openFile->FileHandle = std::move(file);
+    openFile->FileName = filename;
+    openFile->Pack = this;
+
+    _openFiles.insert(std::make_pair(filename, std::move(openFile)));
+
+    return _openFiles[filename].get();
+}
+
+void FileSystemSearchPath::CloseFile(
+    FileSystemSearchPathOpenFile *file)
+{
+    if (file == nullptr)
+    {
+        return;
+    }
+
+    file->FileHandle.close();
+
+    _openFiles.erase(file->FileName);
+}
+
+bool FileSystemSearchPath::FileSystemSearchPathOpenFile::LoadBytes(
+    size_t count,
+    std::vector<valve::byte> &data,
+    size_t offsetFromStart)
+{
+    data.resize(count);
+
+    FileHandle.seekg(offsetFromStart, std::ios::beg);
+    FileHandle.read((char *)data.data(), count);
+
+    return true;
+}
+
+void FileSystemSearchPath::FileSystemSearchPathOpenFile::Close()
+{
+    if (Pack == nullptr)
+    {
+        return;
+    }
+
+    Pack->CloseFile(this);
+}
+
+
+
+
+
+
+
 PakSearchPath::PakSearchPath(
     const std::filesystem::path &root)
     : FileSystemSearchPath(root)
@@ -158,6 +225,78 @@ bool PakSearchPath::LoadFile(
     return false;
 }
 
+valve::IOpenFile *PakSearchPath::OpenFile(
+    const std::string &filename)
+{
+    if (!_pakFile.is_open())
+    {
+        return nullptr;
+    }
+
+    auto relativeFilename = filename.substr(_root.string().length() + 1);
+
+    for (auto f : _files)
+    {
+        auto fname = std::string(f.name);
+        if (relativeFilename != fname)
+        {
+            continue;
+        }
+
+        auto openFile = std::make_unique<PakSearchPath::PakSearchPathOpenFile>();
+
+        openFile->Pack = this;
+        openFile->FileName = fname;
+        openFile->OffsetInPack = f.filepos;
+        openFile->Size = f.filelen;
+
+        _openFiles.insert(std::make_pair(fname, std::move(openFile)));
+
+        return _openFiles[fname].get();
+    }
+
+    return nullptr;
+}
+
+void PakSearchPath::CloseFile(
+    PakSearchPathOpenFile *file)
+{
+    if (file == nullptr)
+    {
+        return;
+    }
+
+    _openFiles.erase(file->FileName);
+}
+
+bool PakSearchPath::PakSearchPathOpenFile::LoadBytes(
+    size_t count,
+    std::vector<valve::byte> &data,
+    size_t offsetFromStart)
+{
+    if (Pack == nullptr)
+    {
+        return false;
+    }
+
+    data.resize(count);
+
+    Pack->_pakFile.seekg(OffsetInPack + offsetFromStart, std::fstream::beg);
+    Pack->_pakFile.read((char *)data.data(), count);
+
+    return true;
+}
+
+void PakSearchPath::PakSearchPathOpenFile::Close()
+{
+    if (Pack == nullptr)
+    {
+        return;
+    }
+
+    Pack->CloseFile(this);
+}
+
 std::string FileSystem::LocateFile(
     const std::string &relativeFilename)
 {
@@ -191,6 +330,26 @@ bool FileSystem::LoadFile(
     }
 
     return false;
+}
+
+valve::IOpenFile *FileSystem::OpenFile(
+    const std::string &filename)
+{
+    for (auto &searchPath : _searchPaths)
+    {
+        if (!searchPath->IsInSearchPath(filename))
+        {
+            continue;
+        }
+
+        auto file = searchPath->OpenFile(filename);
+        if (file != nullptr)
+        {
+            return file;
+        }
+    }
+
+    return nullptr;
 }
 
 void FileSystem::SetRootAndMod(

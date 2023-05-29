@@ -4,8 +4,8 @@
 #include "hltypes.h"
 
 #include <filesystem>
-#include <string>
 #include <fstream>
+#include <string>
 
 class FileSystemSearchPath
 {
@@ -26,8 +26,32 @@ public:
         const std::string &filename,
         std::vector<valve::byte> &data);
 
+    virtual valve::IOpenFile *OpenFile(
+        const std::string &filename);
+
+    class FileSystemSearchPathOpenFile : public valve::IOpenFile
+    {
+    public:
+        virtual bool LoadBytes(
+            size_t count,
+            std::vector<valve::byte> &data,
+            size_t offsetFromStart) override;
+
+        virtual void Close() override;
+
+    public:
+        std::string FileName;
+        FileSystemSearchPath *Pack = nullptr;
+        std::ifstream FileHandle;
+    };
+
 protected:
     std::filesystem::path _root;
+    std::map<std::string, std::unique_ptr<FileSystemSearchPathOpenFile>> _openFiles;
+    friend class FileSystemSearchPathOpenFile;
+
+    void CloseFile(
+        FileSystemSearchPathOpenFile* file);
 };
 
 class PakSearchPath :
@@ -49,11 +73,36 @@ public:
         const std::string &filename,
         std::vector<valve::byte> &data);
 
+    virtual valve::IOpenFile *OpenFile(
+        const std::string &filename);
+
+    class PakSearchPathOpenFile : public valve::IOpenFile
+    {
+    public:
+        virtual bool LoadBytes(
+            size_t count,
+            std::vector<valve::byte> &data,
+            size_t offsetFromStart) override;
+
+        virtual void Close() override;
+
+    public:
+        std::string FileName;
+        PakSearchPath *Pack = nullptr;
+        size_t Size = 0;
+        size_t OffsetInPack = 0;
+    };
+
 private:
     void OpenPakFile();
     std::ifstream _pakFile;
     valve::hl1::tPAKHeader _header;
     std::vector<valve::hl1::tPAKLump> _files;
+    std::map<std::string, std::unique_ptr<PakSearchPathOpenFile>> _openFiles;
+    friend class PakSearchPathOpenFile;
+
+    void CloseFile(
+        PakSearchPathOpenFile* file);
 };
 
 class FileSystem :
@@ -69,6 +118,9 @@ public:
     virtual bool LoadFile(
         const std::string &filename,
         std::vector<valve::byte> &data) override;
+
+    virtual valve::IOpenFile *OpenFile(
+        const std::string &filename) override;
 
     const std::filesystem::path &Root() const;
     const std::string &Mod() const;
