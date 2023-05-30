@@ -95,7 +95,7 @@ namespace valve
         int firstVertex;
         int vertexCount;
         unsigned int lightmap;
-        unsigned int texture;
+        size_t texture;
 
         int flags;
         glm::vec4 plane;

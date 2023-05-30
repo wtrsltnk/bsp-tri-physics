@@ -170,12 +170,14 @@ bool valve::hl1::BspAsset::LoadSkyTextures()
         }
 
         int x, y, n;
-        unsigned char *data = stbi_load_from_memory(buffer.data(), buffer.size(), &x, &y, &n, 0);
+        unsigned char *data = stbi_load_from_memory(buffer.data(), int(buffer.size()), &x, &y, &n, 0);
         if (data != nullptr)
         {
             _skytextures[i] = new valve::Texture();
             _skytextures[i]->SetName(fs::relative(fullPath, _fs->Root() / fs::path(_fs->Mod())).generic_string());
             _skytextures[i]->SetData(x, y, n, data, false);
+
+            stbi_image_free(data);
         }
         else
         {
@@ -324,7 +326,7 @@ bool BspAsset::LoadFacesWithLightmaps(
         tBSPMipTexHeader *mip = GetMiptex(_bspFile->_texinfoData[in.texinfo].miptexIndex);
         tFace out;
 
-        out.firstVertex = vertices.size();
+        out.firstVertex = int(vertices.size());
         out.vertexCount = in.edgeCount;
         out.flags = _bspFile->_texinfoData[in.texinfo].flags;
         out.texture = _bspFile->_texinfoData[in.texinfo].miptexIndex;

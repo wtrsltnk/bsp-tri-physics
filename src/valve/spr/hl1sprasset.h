@@ -31,6 +31,7 @@ namespace valve
             std::vector<Texture *> _textures;
             std::vector<tFace> _faces;
             std::vector<tVertex> _vertices;
+            int _type;
 
         private:
             // File format header

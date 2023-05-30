@@ -29,10 +29,12 @@ bool SprAsset::Load(
         return false;
     }
 
-    this->_header = (tSPRHeader *)data.data();
+    _header = (tSPRHeader *)data.data();
 
-    int w = this->_header->width / 2.0f;
-    int h = this->_header->height / 2.0f;
+    _type = _header->type;
+
+    int w = int(_header->width / 2.0f);
+    int h = int(_header->height / 2.0f);
 
     tVertex verts[4];
     verts[0].position = glm::vec3(-w, 0.0f, -h);

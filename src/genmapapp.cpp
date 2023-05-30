@@ -428,6 +428,7 @@ bool GenMapApp::RenderAsset(
     if (sprAsset != nullptr)
     {
         glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
         glDisable(GL_CULL_FACE);
 
         glDisable(GL_BLEND);
@@ -441,7 +442,6 @@ bool GenMapApp::RenderAsset(
 
     if (mdlAsset != nullptr)
     {
-        glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
 
@@ -457,6 +457,7 @@ bool GenMapApp::RenderAsset(
     if (bspAsset != nullptr)
     {
         RenderSky();
+
         RenderBsp(bspAsset, time);
 
         return true;
@@ -749,7 +750,7 @@ void GenMapApp::RenderBsp(
     valve::hl1::BspAsset *bspAsset,
     std::chrono::microseconds time)
 {
-    glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
 
@@ -772,12 +773,15 @@ void GenMapApp::RenderBsp(
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    RenderSpritesByRenderMode(RenderModes::GlowBlending, _spriteNormalBlendingShader, time);
     RenderByRenderMode(bspAsset, RenderModes::AdditiveBlending, solidShaders, time);
     RenderByRenderMode(bspAsset, RenderModes::TextureBlending, solidShaders, time);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     RenderByRenderMode(bspAsset, RenderModes::SolidBlending, shaders, time);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    RenderSpritesByRenderMode(RenderModes::GlowBlending, _spriteNormalBlendingShader, time);
 }
 
 void GenMapApp::RenderByRenderMode(
@@ -941,6 +945,7 @@ void GenMapApp::RenderSpritesByRenderMode(
             continue;
         }
 
+        shader.setupSpriteType(asset->_type);
         _spriteVertexArray.bind();
 
         spriteComponent->Frame += (dt * 24.0f);
@@ -1201,6 +1206,7 @@ void GenMapApp::RenderSky()
     }
 
     _skyVertexBuffer.unbind();
+    glEnable(GL_DEPTH_TEST);
 }
 
 void OpenGLMessageCallback(

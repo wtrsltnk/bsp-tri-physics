@@ -28,7 +28,7 @@ namespace valve
         {
             char signature[4];
             int version;
-            int type;
+            tSpriteType type;
             int texFormat;
             float boundingradius;
             int width;

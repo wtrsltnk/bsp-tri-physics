@@ -42,6 +42,9 @@ public:
     void setupBrightness(
         float brightness);
 
+    void setupSpriteType(
+        int type);
+
     void setupAttributes(
         GLsizei vertexSize,
         bool includeBone = false);
@@ -58,6 +61,7 @@ private:
     GLuint _viewUniformId = 0;
     GLuint _modelUniformId = 0;
     GLuint _colorUniformId = 0;
+    GLuint _u_spritetypeId = 0;
     GLuint _brightnessUniformId = 0;
     GLuint _bonesUniformId = 0;
     unsigned int _bonesBuffer = 0;

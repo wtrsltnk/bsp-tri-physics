@@ -89,6 +89,8 @@ GLuint ShaderType::compile(
     _viewUniformId = glGetUniformLocation(_shaderId, "u_view");
     _modelUniformId = glGetUniformLocation(_shaderId, "u_model");
     _colorUniformId = glGetUniformLocation(_shaderId, "u_color");
+    _u_spritetypeId = glGetUniformLocation(_shaderId, "u_spritetype");
+    glUniform1i(_u_spritetypeId, 2);
     _brightnessUniformId = glGetUniformLocation(_shaderId, "u_brightness");
 
     GLint i;
@@ -136,6 +138,14 @@ void ShaderType::setupBrightness(
     use();
 
     glUniform1f(_brightnessUniformId, brightness);
+}
+
+void ShaderType::setupSpriteType(
+    int type)
+{
+    use();
+
+    glUniform1i(_u_spritetypeId, type);
 }
 
 void ShaderType::setupAttributes(
@@ -412,6 +422,7 @@ GLuint ShaderType::compileSprShader()
         uniform mat4 u_view;
         uniform mat4 u_model;
         uniform vec4 u_color;
+        uniform int u_spritetype; // 0 for cylindrical; 1 for spherical; 2 for Oriented
 
         out vec2 v_uv_tex;
         out vec4 v_color;
@@ -419,20 +430,26 @@ GLuint ShaderType::compileSprShader()
         void main() {
             mat4 viewmodel = u_view * u_model;
 
-            // First colunm.
-            viewmodel[0][0] = 1.0;
-            viewmodel[0][1] = 0.0;
-            viewmodel[0][2] = 0.0;
+            if (u_spritetype < 3)
+            {
+                // First colunm.
+                viewmodel[0][0] = length(viewmodel[0]);
+                viewmodel[0][1] = 0.0;
+                viewmodel[0][2] = 0.0;
 
-            // Second colunm.
-            viewmodel[2][0] = 0.0;
-            viewmodel[2][1] = 1.0;
-            viewmodel[2][2] = 0.0;
+                // Second colunm.
+                viewmodel[1][0] = 0.0;
+                viewmodel[1][1] = 0.0;
+                viewmodel[1][2] = length(viewmodel[1]);
 
-            // Thrid colunm.
-            viewmodel[1][0] = 0.0;
-            viewmodel[1][1] = 0.0;
-            viewmodel[1][2] = 1.0;
+                if (u_spritetype == 2)
+                {
+                    // Thrid colunm.
+                    viewmodel[2][0] = 0.0;
+                    viewmodel[2][1] = length(viewmodel[2]);
+                    viewmodel[2][2] = 0.0;
+                }
+            }
 
             mat4 m = u_proj * viewmodel;
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
