@@ -54,11 +54,13 @@ protected:
     void SetupSky(
         valve::hl1::BspAsset *bspAsset);
 
-    glm::vec3 SetupBsp(
-        valve::hl1::BspAsset *bspAsset);
+    bool SetupBsp(
+        valve::hl1::BspAsset *bspAsset,
+        glm::vec3 &origin);
 
-    glm::vec3 SetupEntities(
-        valve::hl1::BspAsset *bspAsset);
+    bool SetupEntities(
+        valve::hl1::BspAsset *bspAsset,
+        glm::vec3 &origin);
 
     bool RenderAsset(
         std::chrono::microseconds time);

@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#define GLSL(src) "#version 330 core\n" #src
+#define GLSL(src) "#version 400\n" #src
 
 class ShaderType
 {
@@ -45,9 +45,8 @@ public:
     void setupSpriteType(
         int type);
 
-    void setupAttributes(
-        GLsizei vertexSize,
-        bool includeBone = false);
+    bool setupAttributes(
+        GLsizei vertexSize);
 
     void BindBones(
         const glm::mat4 m[],

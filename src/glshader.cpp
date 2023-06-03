@@ -148,9 +148,8 @@ void ShaderType::setupSpriteType(
     glUniform1i(_u_spritetypeId, type);
 }
 
-void ShaderType::setupAttributes(
-    GLsizei vertexSize,
-    bool includeBone)
+bool ShaderType::setupAttributes(
+    GLsizei vertexSize)
 {
     glUseProgram(_shaderId);
 
@@ -158,7 +157,7 @@ void ShaderType::setupAttributes(
     if (vertexAttrib < 0)
     {
         spdlog::error("failed to get attribute location for \"a_vertex\" ({})", vertexAttrib);
-        return;
+        return false;
     }
 
     glVertexAttribPointer(
@@ -174,7 +173,7 @@ void ShaderType::setupAttributes(
     if (colorAttrib < 0)
     {
         spdlog::error("failed to get attribute location for \"a_color\" ({})", colorAttrib);
-        return;
+        return false;
     }
 
     glVertexAttribPointer(
@@ -191,7 +190,7 @@ void ShaderType::setupAttributes(
     if (texcoordsAttrib < 0)
     {
         spdlog::error("failed to get attribute location for \"a_texcoords\" ({})", texcoordsAttrib);
-        return;
+        return false;
     }
 
     glVertexAttribPointer(
@@ -204,15 +203,9 @@ void ShaderType::setupAttributes(
 
     glEnableVertexAttribArray(GLuint(texcoordsAttrib));
 
-    if (includeBone)
+    auto boneAttrib = glGetAttribLocation(_shaderId, "a_bone");
+    if (boneAttrib > 0)
     {
-        auto boneAttrib = glGetAttribLocation(_shaderId, "a_bone");
-        if (boneAttrib < 0)
-        {
-            spdlog::error("failed to get attribute location for \"a_bone\" ({})", boneAttrib);
-            return;
-        }
-
         glVertexAttribPointer(
             GLuint(boneAttrib),
             1,
@@ -231,6 +224,8 @@ void ShaderType::setupAttributes(
     auto ligtmapLocation = glGetUniformLocation(_shaderId, "u_tex1");
     glActiveTexture(GL_TEXTURE1);
     glUniform1i(ligtmapLocation, 1);
+
+    return true;
 }
 
 void ShaderType::BindBones(
@@ -250,12 +245,36 @@ void ShaderType::UnbindBones()
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
+const char *fshader = GLSL(
+    uniform sampler2D u_tex0;
+    uniform sampler2D u_tex1;
+    uniform float u_brightness;
+
+    in vec2 v_uv_tex;
+    in vec2 v_uv_light;
+    in vec4 v_color;
+
+    out vec4 color;
+
+    void main() {
+        vec4 texel0;
+        vec4 texel1;
+        texel0 = texture2D(u_tex0, v_uv_tex);
+        texel1 = texture2D(u_tex1, v_uv_light) + vec4(u_brightness, u_brightness, u_brightness, u_brightness);
+        if (texel0.a < 0.1)
+            discard;
+        else
+            color = texel0 * texel1 * v_color;
+    });
+
 GLuint ShaderType::compileDefaultShader()
 {
+    spdlog::debug("compiling Default shader");
+
     std::string const vshader(GLSL(
-        in vec3 a_vertex;
-        in vec3 a_color;
-        in vec4 a_texcoords;
+        layout(location = 0) in vec3 a_vertex;
+        layout(location = 1) in vec3 a_color;
+        layout(location = 2) in vec4 a_texcoords;
 
         uniform mat4 u_proj;
         uniform mat4 u_view;
@@ -267,30 +286,15 @@ GLuint ShaderType::compileDefaultShader()
         out vec4 v_color;
 
         void main() {
-            mat4 m = u_proj * u_view * u_model;
+            mat4 viewmodel = u_view * u_model;
+
+            mat4 m = u_proj * viewmodel;
+
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
+
             v_uv_light = a_texcoords.xy;
             v_uv_tex = a_texcoords.zw;
             v_color = vec4(a_color, 1.0) * u_color;
-        }));
-
-    std::string const fshader(GLSL(
-        uniform sampler2D u_tex0;
-        uniform sampler2D u_tex1;
-        uniform float u_brightness;
-
-        in vec2 v_uv_tex;
-        in vec2 v_uv_light;
-        in vec4 v_color;
-
-        out vec4 color;
-
-        void main() {
-            vec4 texel0;
-            vec4 texel1;
-            texel0 = texture2D(u_tex0, v_uv_tex);
-            texel1 = texture2D(u_tex1, v_uv_light) + vec4(u_brightness, u_brightness, u_brightness, u_brightness);
-            color = texel0 * texel1 * v_color;
         }));
 
     static GLuint defaultShader = compile(vshader, fshader);
@@ -303,9 +307,10 @@ GLuint ShaderType::compileBspShader()
     spdlog::debug("compiling BSP shader");
 
     const char *vshader = GLSL(
-        in vec3 a_vertex;
-        in vec3 a_color;
-        in vec4 a_texcoords;
+        layout(location = 0) in vec3 a_vertex;
+        layout(location = 1) in vec3 a_color;
+        layout(location = 2) in vec4 a_texcoords;
+        layout(location = 3) in int a_bone;
 
         uniform mat4 u_proj;
         uniform mat4 u_view;
@@ -316,33 +321,15 @@ GLuint ShaderType::compileBspShader()
         out vec2 v_uv_light;
 
         void main() {
-            mat4 m = u_proj * u_view * u_model;
+            mat4 viewmodel = u_view * u_model;
+
+            mat4 m = u_proj * viewmodel;
+
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
+
             v_color = vec4(a_color, 1.0f);
             v_uv_light = a_texcoords.xy;
             v_uv_tex = a_texcoords.zw;
-        });
-
-    const char *fshader = GLSL(
-        uniform sampler2D u_tex0;
-        uniform sampler2D u_tex1;
-        uniform float u_brightness;
-
-        in vec2 v_uv_tex;
-        in vec2 v_uv_light;
-        in vec4 v_color;
-
-        out vec4 color;
-
-        void main() {
-            vec4 texel0;
-            vec4 texel1;
-            texel0 = texture2D(u_tex0, v_uv_tex);
-            texel1 = texture2D(u_tex1, v_uv_light);
-            if (texel0.a < 0.1)
-                discard;
-            else
-                color = texel0 * texel1 * vec4(1.0, 1.0, 1.0, u_brightness) * v_color;
         });
 
     static GLuint defaultShader = compile(vshader, fshader);
@@ -355,10 +342,10 @@ GLuint ShaderType::compileMdlShader()
     spdlog::debug("compiling MDL shader");
 
     const char *mdlvshader = GLSL(
-        in vec3 a_vertex;
-        in vec3 a_color;
-        in vec4 a_texcoords;
-        in int a_bone;
+        layout(location = 0) in vec3 a_vertex;
+        layout(location = 1) in vec3 a_color;
+        layout(location = 2) in vec4 a_texcoords;
+        layout(location = 3) in int a_bone;
 
         uniform mat4 u_proj;
         uniform mat4 u_view;
@@ -373,38 +360,20 @@ GLuint ShaderType::compileMdlShader()
         out vec4 v_color;
 
         void main() {
-            mat4 m = u_proj * u_view * u_model;
+            mat4 viewmodel = u_view * u_model;
+
+            mat4 m = u_proj * viewmodel;
+
             if (a_bone >= 0) m = m * u_bones[a_bone];
+
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
-            v_uv_light = a_texcoords.zw;
+
             v_uv_tex = a_texcoords.xy;
+            v_uv_light = a_texcoords.zw;
             v_color = vec4(a_color, 1.0) * u_color;
         });
 
-    const char *mdlfshader = GLSL(
-        uniform sampler2D u_tex0;
-        uniform sampler2D u_tex1;
-        uniform float u_brightness;
-
-        in vec2 v_uv_tex;
-        in vec2 v_uv_light;
-        in vec4 v_color;
-
-        out vec4 color;
-
-        void main() {
-            vec4 texel0;
-            vec4 texel1;
-            texel0 = texture2D(u_tex0, v_uv_tex);
-            texel1 = texture2D(u_tex1, v_uv_light) * u_brightness;
-            vec4 tempcolor = texel0 * v_color;
-            if (texel0.a < 0.1)
-                discard;
-            else
-                color = texel0 * v_color;
-        });
-
-    static GLuint defaultShader = compile(mdlvshader, mdlfshader, 64);
+    static GLuint defaultShader = compile(mdlvshader, fshader, 64);
 
     return defaultShader;
 }
@@ -414,9 +383,10 @@ GLuint ShaderType::compileSprShader()
     spdlog::debug("compiling SPR shader");
 
     const char *vshader = GLSL(
-        in vec3 a_vertex;
-        in vec3 a_color;
-        in vec4 a_texcoords;
+        layout(location = 0) in vec3 a_vertex;
+        layout(location = 1) in vec3 a_color;
+        layout(location = 2) in vec4 a_texcoords;
+        layout(location = 3) in int a_bone;
 
         uniform mat4 u_proj;
         uniform mat4 u_view;
@@ -425,6 +395,7 @@ GLuint ShaderType::compileSprShader()
         uniform int u_spritetype; // 0 for cylindrical; 1 for spherical; 2 for Oriented
 
         out vec2 v_uv_tex;
+        out vec2 v_uv_light;
         out vec4 v_color;
 
         void main() {
@@ -455,26 +426,8 @@ GLuint ShaderType::compileSprShader()
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
 
             v_uv_tex = a_texcoords.xy;
+            v_uv_light = a_texcoords.zw;
             v_color = vec4(a_color, 1.0) * u_color;
-        });
-
-    const char *fshader = GLSL(
-        uniform sampler2D u_tex0;
-        uniform float u_brightness;
-
-        in vec2 v_uv_tex;
-        in vec4 v_color;
-
-        out vec4 color;
-
-        void main() {
-            vec4 texel0;
-            vec4 texel1;
-            texel0 = texture2D(u_tex0, v_uv_tex) * u_brightness;
-            if (texel0.a < 0.1)
-                discard;
-            else
-                color = texel0 * v_color;
         });
 
     static GLuint defaultShader = compile(vshader, fshader);
@@ -484,35 +437,33 @@ GLuint ShaderType::compileSprShader()
 
 GLuint ShaderType::compileSkyShader()
 {
+    spdlog::debug("compiling SKY shader");
+
     const char *vshader = GLSL(
-        in vec3 a_vertex;
-        in vec3 a_color;
-        in vec4 a_texcoords;
+        layout(location = 0) in vec3 a_vertex;
+        layout(location = 1) in vec3 a_color;
+        layout(location = 2) in vec4 a_texcoords;
+        layout(location = 3) in int a_bone;
 
         uniform mat4 u_proj;
         uniform mat4 u_view;
         uniform mat4 u_model;
+        uniform vec4 u_color;
 
-        out vec3 v_color;
-        out vec2 v_texCoord;
+        out vec2 v_uv_tex;
+        out vec2 v_uv_light;
+        out vec4 v_color;
 
         void main() {
-            mat4 m = u_proj * u_view * u_model;
+            mat4 viewmodel = u_view * u_model;
+
+            mat4 m = u_proj * viewmodel;
+
             gl_Position = m * vec4(a_vertex, 1.0);
-            v_color = a_color;
-            v_texCoord = a_texcoords.xy;
-        });
 
-    const char *fshader = GLSL(
-        in vec3 v_color;
-        in vec2 v_texCoord;
-
-        uniform sampler2D tex;
-
-        out vec4 color;
-
-        void main() {
-            color = texture(tex, v_texCoord) * vec4(v_color, 1.0f);
+            v_uv_tex = a_texcoords.xy;
+            v_uv_light = a_texcoords.zw;
+            v_color = vec4(a_color, 1.0) * u_color;
         });
 
     static GLuint defaultShader = compile(vshader, fshader);

@@ -78,8 +78,15 @@ bool GenMapApp::Startup()
 
         _registry.assign<SpriteComponent>(entity, BuildSpriteComponent(sprAsset));
 
-        _spriteNormalBlendingShader.compileSprShader();
-        _spriteVertexArray.upload(_spriteNormalBlendingShader, false);
+        if (_spriteNormalBlendingShader.compileSprShader() == 0)
+        {
+            return false;
+        }
+
+        if (!_spriteVertexArray.upload(_spriteNormalBlendingShader))
+        {
+            return false;
+        }
 
         _cam.SetPosition(glm::vec3(0.0f, 10.0f, 0.0f));
 
@@ -111,8 +118,15 @@ bool GenMapApp::Startup()
 
         _registry.assign<StudioComponent>(entity, BuildStudioComponent(mdlAsset));
 
-        _studioNormalBlendingShader.compileMdlShader();
-        _studioVertexArray.upload(_studioNormalBlendingShader, true);
+        if (_studioNormalBlendingShader.compileMdlShader() == 0)
+        {
+            return false;
+        }
+
+        if (!_studioVertexArray.upload(_studioNormalBlendingShader))
+        {
+            return false;
+        }
 
         auto offset = glm::length(center);
         if (offset == 0.0f)
@@ -129,9 +143,17 @@ bool GenMapApp::Startup()
 
     if (bspAsset != nullptr)
     {
-        auto origin = SetupBsp(bspAsset);
+        glm::vec3 origin;
 
-        _trailShader.compile(trailVertexShader, trailFragmentShader);
+        if (!SetupBsp(bspAsset, origin))
+        {
+            return false;
+        }
+
+        if (_trailShader.compile(trailVertexShader, trailFragmentShader) == 0)
+        {
+            return false;
+        }
 
         for (int v = 0; v < 36; v++)
         {
@@ -139,7 +161,10 @@ bool GenMapApp::Startup()
                 .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
         }
 
-        _vertexArray.upload(_trailShader);
+        if (!_vertexArray.upload(_trailShader))
+        {
+            return false;
+        }
 
         _character = _physics->AddCharacter(15, 16, 45, origin);
 
@@ -474,8 +499,9 @@ void GenMapApp::SetFilename(
     _map = map;
 }
 
-glm::vec3 GenMapApp::SetupBsp(
-    valve::hl1::BspAsset *bspAsset)
+bool GenMapApp::SetupBsp(
+    valve::hl1::BspAsset *bspAsset,
+    glm::vec3 &origin)
 {
     _lightmapIndices = std::vector<GLuint>();
     glActiveTexture(GL_TEXTURE1);
@@ -519,7 +545,7 @@ glm::vec3 GenMapApp::SetupBsp(
 
                 _vertexBuffer
                     .uvs(glm::vec4(vertex.texcoords[1].x, vertex.texcoords[1].y, vertex.texcoords[0].x, vertex.texcoords[0].y))
-                    .bone(vertex.bone)
+                    .bone(-1)
                     .vertex(glm::vec3(vertex.position));
             }
         }
@@ -527,20 +553,51 @@ glm::vec3 GenMapApp::SetupBsp(
         _faces.push_back(ft);
     }
 
-    _solidBlendingShader.compileBspShader();
+    if (_solidBlendingShader.compileBspShader() == 0)
+    {
+        spdlog::error("failed to compile solid blending shader");
+        return false;
+    }
 
-    _normalBlendingShader.compileDefaultShader();
-    _vertexBuffer.upload(_normalBlendingShader);
+    if (_normalBlendingShader.compileDefaultShader() == 0)
+    {
+        spdlog::error("failed to compile normal blending shader");
+        return false;
+    }
 
-    auto origin = SetupEntities(bspAsset);
+    if (!_vertexBuffer.upload(_normalBlendingShader))
+    {
+        return false;
+    }
 
-    _studioNormalBlendingShader.compileMdlShader();
-    _studioVertexArray.upload(_studioNormalBlendingShader, true);
+    if (!SetupEntities(bspAsset, origin))
+    {
+        return false;
+    }
 
-    _spriteNormalBlendingShader.compileSprShader();
-    _spriteVertexArray.upload(_spriteNormalBlendingShader, false);
+    if (_studioNormalBlendingShader.compileMdlShader() == 0)
+    {
+        spdlog::error("failed to compile studio normal blending shader");
+        return false;
+    }
 
-    return origin;
+    if (!_studioVertexArray.upload(_studioNormalBlendingShader))
+    {
+        return false;
+    }
+
+    if (_spriteNormalBlendingShader.compileSprShader() == 0)
+    {
+        spdlog::error("failed to compile srite normal blending shader");
+        return false;
+    }
+
+    if (!_spriteVertexArray.upload(_spriteNormalBlendingShader))
+    {
+        return false;
+    }
+
+    return true;
 }
 
 void GenMapApp::GrabTriangles(
@@ -573,8 +630,9 @@ void GenMapApp::GrabTriangles(
     }
 }
 
-glm::vec3 GenMapApp::SetupEntities(
-    valve::hl1::BspAsset *bspAsset)
+bool GenMapApp::SetupEntities(
+    valve::hl1::BspAsset *bspAsset,
+    glm::vec3 &origin)
 {
     std::vector<glm::vec3> triangles;
 
@@ -590,8 +648,15 @@ glm::vec3 GenMapApp::SetupEntities(
 
             SetupSky(bspAsset);
 
-            _skyShader.compileSkyShader();
-            _skyVertexBuffer.upload(_skyShader);
+            if (_skyShader.compileSkyShader() == 0)
+            {
+                return false;
+            }
+
+            if (!_skyVertexBuffer.upload(_skyShader))
+            {
+                return false;
+            }
 
             RenderComponent rc = {
                 .Amount = 255,
@@ -743,14 +808,16 @@ glm::vec3 GenMapApp::SetupEntities(
         return lhs.Mode < rhs.Mode;
     });
 
-    return _cam.Position();
+    origin = _cam.Position();
+
+    return true;
 }
 
 void GenMapApp::RenderBsp(
     valve::hl1::BspAsset *bspAsset,
     std::chrono::microseconds time)
 {
-    //glEnable(GL_DEPTH_TEST);
+    // glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
 

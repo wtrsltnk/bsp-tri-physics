@@ -1,5 +1,5 @@
 #ifndef _HL1SPRTYPES_H_
-#define	_HL1SPRTYPES_H_
+#define _HL1SPRTYPES_H_
 
 #define HL1_SPR_SIGNATURE "IDSP"
 
@@ -11,8 +11,17 @@ namespace valve
     namespace hl1
     {
 
-        typedef enum eSyncType { ST_SYNC = 0, ST_RAND } tSyncType;
-        typedef enum eSpriteFrameType { SPR_SINGLE = 0, SPR_GROUP } tSpriteFrameType;
+        typedef enum eSyncType
+        {
+            ST_SYNC = 0,
+            ST_RAND,
+        } tSyncType;
+
+        typedef enum eSpriteFrameType
+        {
+            SPR_SINGLE = 0,
+            SPR_GROUP,
+        } tSpriteFrameType;
 
         typedef enum eSpriteType
         {
@@ -20,16 +29,24 @@ namespace valve
             SPR_FACING_UPRIGHT,
             SPR_VP_PARALLEL,
             SPR_ORIENTED,
-            SPR_VP_PARALLEL_ORIENTED
+            SPR_VP_PARALLEL_ORIENTED,
 
         } tSpriteType;
+
+        typedef enum eTextureFormat
+        {
+            Normal = 0,
+            Additive = 1,
+            IndexAlpha = 2,
+            AlphaTest = 3,
+        } tTextureFormat;
 
         typedef struct sSPRHeader
         {
             char signature[4];
             int version;
             tSpriteType type;
-            int texFormat;
+            tTextureFormat texFormat;
             float boundingradius;
             int width;
             int height;
@@ -47,10 +64,10 @@ namespace valve
 
         } tSPRFrame;
 
-    }
+    } // namespace hl1
 
-}
+} // namespace valve
 
 #pragma pack(pop)
 
-#endif	// _HL1SPRTYPES_H_
+#endif // _HL1SPRTYPES_H_

@@ -58,8 +58,7 @@ public:
         int bone);
 
     bool upload(
-        ShaderType &shader,
-        bool includeBone = false);
+        ShaderType &shader);
 
     void bind();
 

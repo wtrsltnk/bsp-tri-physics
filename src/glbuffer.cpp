@@ -107,14 +107,13 @@ BufferType &BufferType::bone(
 }
 
 bool BufferType::upload(
-    ShaderType &shader,
-    bool includeBone)
+    ShaderType &shader)
 {
     _vertexCount = static_cast<GLsizei>(_verts.size());
 
     if (_vertexCount == 0)
     {
-        return false;
+        return true;
     }
 
     glGenVertexArrays(1, &_vertexArrayId);
@@ -135,7 +134,10 @@ bool BufferType::upload(
         GLsizeiptr(_verts.size() * sizeof(VertexType)),
         reinterpret_cast<const GLvoid *>(&_verts[0]));
 
-    shader.setupAttributes(sizeof(VertexType), includeBone);
+    if (!shader.setupAttributes(sizeof(VertexType)))
+    {
+        return false;
+    }
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
