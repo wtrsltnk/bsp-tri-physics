@@ -83,7 +83,12 @@ bool GenMapApp::Startup()
             return false;
         }
 
-        if (!_spriteVertexArray.upload(_spriteNormalBlendingShader))
+        if (!_spriteVertexArray.upload())
+        {
+            return false;
+        }
+
+        if (!_spriteNormalBlendingShader.setupAttributes(sizeof(VertexType)))
         {
             return false;
         }
@@ -123,7 +128,12 @@ bool GenMapApp::Startup()
             return false;
         }
 
-        if (!_studioVertexArray.upload(_studioNormalBlendingShader))
+        if (!_studioVertexArray.upload())
+        {
+            return false;
+        }
+
+        if (!_studioNormalBlendingShader.setupAttributes(sizeof(VertexType)))
         {
             return false;
         }
@@ -161,7 +171,12 @@ bool GenMapApp::Startup()
                 .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
         }
 
-        if (!_vertexArray.upload(_trailShader))
+        if (!_vertexArray.upload())
+        {
+            return false;
+        }
+
+        if (!_trailShader.setupAttributes(sizeof(VertexType)))
         {
             return false;
         }
@@ -565,7 +580,12 @@ bool GenMapApp::SetupBsp(
         return false;
     }
 
-    if (!_vertexBuffer.upload(_normalBlendingShader))
+    if (!_vertexBuffer.upload())
+    {
+        return false;
+    }
+
+    if (!_normalBlendingShader.setupAttributes(sizeof(VertexType)))
     {
         return false;
     }
@@ -581,7 +601,12 @@ bool GenMapApp::SetupBsp(
         return false;
     }
 
-    if (!_studioVertexArray.upload(_studioNormalBlendingShader))
+    if (!_studioVertexArray.upload())
+    {
+        return false;
+    }
+
+    if (!_studioNormalBlendingShader.setupAttributes(sizeof(VertexType)))
     {
         return false;
     }
@@ -592,7 +617,12 @@ bool GenMapApp::SetupBsp(
         return false;
     }
 
-    if (!_spriteVertexArray.upload(_spriteNormalBlendingShader))
+    if (!_spriteVertexArray.upload())
+    {
+        return false;
+    }
+
+    if (!_spriteNormalBlendingShader.setupAttributes(sizeof(VertexType)))
     {
         return false;
     }
@@ -653,7 +683,12 @@ bool GenMapApp::SetupEntities(
                 return false;
             }
 
-            if (!_skyVertexBuffer.upload(_skyShader))
+            if (!_skyVertexBuffer.upload())
+            {
+                return false;
+            }
+
+            if (!_skyShader.setupAttributes(sizeof(VertexType)))
             {
                 return false;
             }

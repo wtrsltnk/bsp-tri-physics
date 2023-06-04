@@ -106,8 +106,7 @@ BufferType &BufferType::bone(
     return *this;
 }
 
-bool BufferType::upload(
-    ShaderType &shader)
+bool BufferType::upload()
 {
     _vertexCount = static_cast<GLsizei>(_verts.size());
 
@@ -134,13 +133,10 @@ bool BufferType::upload(
         GLsizeiptr(_verts.size() * sizeof(VertexType)),
         reinterpret_cast<const GLvoid *>(&_verts[0]));
 
-    if (!shader.setupAttributes(sizeof(VertexType)))
-    {
-        return false;
-    }
-
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     _verts.clear();
 

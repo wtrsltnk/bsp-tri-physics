@@ -57,8 +57,7 @@ public:
     BufferType &bone(
         int bone);
 
-    bool upload(
-        ShaderType &shader);
+    bool upload();
 
     void bind();
 

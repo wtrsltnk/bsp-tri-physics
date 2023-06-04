@@ -151,71 +151,38 @@ void ShaderType::setupSpriteType(
 bool ShaderType::setupAttributes(
     GLsizei vertexSize)
 {
-    glUseProgram(_shaderId);
-
-    auto vertexAttrib = glGetAttribLocation(_shaderId, "a_vertex");
-    if (vertexAttrib < 0)
-    {
-        spdlog::error("failed to get attribute location for \"a_vertex\" ({})", vertexAttrib);
-        return false;
-    }
+    use();
 
     glVertexAttribPointer(
-        GLuint(vertexAttrib),
+        0,
         sizeof(glm::vec3) / sizeof(float),
         GL_FLOAT,
         GL_FALSE,
         vertexSize, 0);
 
-    glEnableVertexAttribArray(GLuint(vertexAttrib));
-
-    auto colorAttrib = glGetAttribLocation(_shaderId, "a_color");
-    if (colorAttrib < 0)
-    {
-        spdlog::error("failed to get attribute location for \"a_color\" ({})", colorAttrib);
-        return false;
-    }
-
     glVertexAttribPointer(
-        GLuint(colorAttrib),
+        1,
         sizeof(glm::vec3) / sizeof(float),
         GL_FLOAT,
         GL_FALSE,
         vertexSize,
         reinterpret_cast<const GLvoid *>(sizeof(glm::vec3)));
 
-    glEnableVertexAttribArray(GLuint(colorAttrib));
-
-    auto texcoordsAttrib = glGetAttribLocation(_shaderId, "a_texcoords");
-    if (texcoordsAttrib < 0)
-    {
-        spdlog::error("failed to get attribute location for \"a_texcoords\" ({})", texcoordsAttrib);
-        return false;
-    }
-
     glVertexAttribPointer(
-        GLuint(texcoordsAttrib),
+        2,
         sizeof(glm::vec4) / sizeof(float),
         GL_FLOAT,
         GL_FALSE,
         vertexSize,
         reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3)));
 
-    glEnableVertexAttribArray(GLuint(texcoordsAttrib));
-
-    auto boneAttrib = glGetAttribLocation(_shaderId, "a_bone");
-    if (boneAttrib > 0)
-    {
-        glVertexAttribPointer(
-            GLuint(boneAttrib),
-            1,
-            GL_FLOAT,
-            GL_FALSE,
-            vertexSize,
-            reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3) + sizeof(glm::vec4)));
-
-        glEnableVertexAttribArray(GLuint(boneAttrib));
-    }
+    glVertexAttribPointer(
+        3,
+        1,
+        GL_FLOAT,
+        GL_FALSE,
+        vertexSize,
+        reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3) + sizeof(glm::vec4)));
 
     auto textLocation = glGetUniformLocation(_shaderId, "u_tex0");
     glActiveTexture(GL_TEXTURE0);
