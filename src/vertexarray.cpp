@@ -26,7 +26,7 @@ std::tuple<size_t, size_t> VertexArray::add(
     const glm::vec3 &size,
     const glm::vec3 &transform)
 {
-    size_t start = _vertexData.size() / 6;
+    size_t start = _vertexData.size() / 11;
 
     for (unsigned int i = 0; i < vertexCount; i++)
     {
@@ -38,9 +38,18 @@ std::tuple<size_t, size_t> VertexArray::add(
         _vertexData.push_back(rgb.x);
         _vertexData.push_back(rgb.y);
         _vertexData.push_back(rgb.z);
+
+        // uvs
+        _vertexData.push_back(0.0f);
+        _vertexData.push_back(0.0f);
+        _vertexData.push_back(0.0f);
+        _vertexData.push_back(0.0f);
+
+        // bone
+        _vertexData.push_back(-1.0f);
     }
 
-    return std::tuple<size_t, size_t>(start, (_vertexData.size() / 6) - start);
+    return std::tuple<size_t, size_t>(start, (_vertexData.size() / 11) - start);
 }
 
 void VertexArray::upload()
@@ -51,11 +60,17 @@ void VertexArray::upload()
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * _vertexData.size(), _vertexData.data(), GL_STATIC_DRAW);
 
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    // texture coord attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    // color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    // texture coord attribute
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void *)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    // bone attribute
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void *)(10 * sizeof(float)));
+    glEnableVertexAttribArray(3);
 }
 
 void VertexArray::bind()

@@ -55,6 +55,10 @@ BufferType &BufferType::vertex(
 
     _vertexCount = static_cast<GLsizei>(_verts.size());
 
+    _nextCol = glm::vec3(1.0f, 1.0f, 1.0f);
+    _nextBone = -1;
+    _nextUvs = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
     return *this;
 }
 

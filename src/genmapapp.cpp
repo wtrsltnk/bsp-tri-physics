@@ -36,7 +36,7 @@ inline std::istream &operator>>(
 bool GenMapApp::Startup()
 {
     _renderer = std::make_unique<OpenGlRenderer>();
-    _physics = new PhysicsService();
+    _physics = std::make_unique<PhysicsService>();
 
     glActiveTexture(GL_TEXTURE1);
 
@@ -60,20 +60,20 @@ bool GenMapApp::Startup()
 
     spdlog::info("{} @ {}", _assets._fs.Mod(), _assets._fs.Root().generic_string());
 
-    _rootAsset = _assets.LoadAsset(_map);
+    auto rootAsset = _assets.LoadAsset(_map);
 
-    if (_rootAsset == nullptr)
+    if (rootAsset == nullptr)
     {
         spdlog::error("Failed to load {}", _map);
 
         return false;
     }
 
-    valve::hl1::BspAsset *bspAsset = nullptr;
-    valve::hl1::MdlAsset *mdlAsset = nullptr;
-    valve::hl1::SprAsset *sprAsset = nullptr;
+    bspAsset = dynamic_cast<valve::hl1::BspAsset *>(rootAsset);
+    mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(rootAsset);
+    sprAsset = dynamic_cast<valve::hl1::SprAsset *>(rootAsset);
 
-    if ((sprAsset = dynamic_cast<valve::hl1::SprAsset *>(_rootAsset)) != nullptr)
+    if (sprAsset != nullptr)
     {
         const auto entity = _registry.create();
 
@@ -96,7 +96,7 @@ bool GenMapApp::Startup()
 
         _cam.SetPosition(glm::vec3(0.0f, 10.0f, 0.0f));
     }
-    else if ((mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(_rootAsset)) != nullptr)
+    else if (mdlAsset != nullptr)
     {
         auto center = mdlAsset->_header->min + ((mdlAsset->_header->max - mdlAsset->_header->min) * 0.5f);
 
@@ -127,7 +127,7 @@ bool GenMapApp::Startup()
 
         _cam.SetPosition(center + glm::vec3(0.0f, offset, 0.0f));
     }
-    else if ((bspAsset = dynamic_cast<valve::hl1::BspAsset *>(_rootAsset)) != nullptr)
+    else if (bspAsset != nullptr)
     {
         glm::vec3 origin;
 
@@ -136,30 +136,18 @@ bool GenMapApp::Startup()
             return false;
         }
 
-        if (_trailShader.compile(trailVertexShader, trailFragmentShader) == 0)
-        {
-            return false;
-        }
-
-        for (int v = 0; v < 36; v++)
-        {
-            _vertexArray
-                .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
-        }
-
-        if (!_vertexArray.upload())
-        {
-            return false;
-        }
-
-        if (!_trailShader.setupAttributes(sizeof(VertexType)))
-        {
-            return false;
-        }
-
         _character = _physics->AddCharacter(15, 16, 45, origin);
 
         _physicsCameraMode = true;
+    }
+
+    _firstCubeVertex = _vertexBuffer.vertexCount();
+    for (int v = 0; v < 36; v++)
+    {
+        _vertexBuffer
+            .bone(-1)
+            .col(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
+            .vertex_and_col(&vertices[v * 6], glm::vec3(10.0f));
     }
 
     if (!_vertexBuffer.upload())
@@ -266,7 +254,7 @@ void GenMapApp::HandleBspInput(
         _physics->JumpCharacter(_character, _cam.Up());
     }
 
-    if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeyF8))
+    if (IsKeyboardButtonPushed(inputState, KeyboardButtons::KeyF9))
     {
         showPhysicsDebug = !showPhysicsDebug;
     }
@@ -411,19 +399,22 @@ bool GenMapApp::Tick(
 
     RenderAsset(time);
 
-    _vertexArray.bind();
+    auto cubes = _registry.view<PhysicsComponent, BallComponent>();
 
-    auto view = _registry.view<PhysicsComponent, BallComponent>();
-
-    for (auto &entity : view)
+    glDisable(GL_BLEND);
+    for (auto &entity : cubes)
     {
         auto physicsComponent = _registry.get<PhysicsComponent>(entity);
 
         auto m = glm::scale(_physics->GetMatrix(physicsComponent), glm::vec3(3.0f));
 
-        _trailShader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), m);
+        _defaultShader.use();
+        _defaultShader.setupSpriteType(9);
+        _defaultShader.setupBrightness(0.5f);
+        _defaultShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        _defaultShader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), m);
 
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawArrays(GL_TRIANGLES, _firstCubeVertex, 36);
     }
 
     if (showPhysicsDebug)
@@ -434,10 +425,19 @@ bool GenMapApp::Tick(
 
         vertexAndColorBuffer.upload();
 
-        _trailShader.setupMatrices(
-            _projectionMatrix,
-            _cam.GetViewMatrix(),
-            glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / 0.08f, 1.0f / 0.08f, 1.0f / 0.08f)));
+        auto m = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / 0.08f, 1.0f / 0.08f, 1.0f / 0.08f));
+
+        _defaultShader.use();
+        _defaultShader.setupSpriteType(9);
+        _defaultShader.setupBrightness(0.5f);
+        _defaultShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        _defaultShader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), m);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, _emptyWhiteTexture);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, _emptyWhiteTexture);
 
         glDisable(GL_DEPTH_TEST);
         vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
@@ -450,8 +450,6 @@ bool GenMapApp::Tick(
 bool GenMapApp::RenderAsset(
     std::chrono::microseconds time)
 {
-    auto sprAsset = dynamic_cast<valve::hl1::SprAsset *>(_rootAsset);
-
     if (sprAsset != nullptr)
     {
         glEnable(GL_DEPTH_TEST);
@@ -463,10 +461,7 @@ bool GenMapApp::RenderAsset(
 
         return true;
     }
-
-    auto mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(_rootAsset);
-
-    if (mdlAsset != nullptr)
+    else if (mdlAsset != nullptr)
     {
         glDisable(GL_BLEND);
 
@@ -474,10 +469,7 @@ bool GenMapApp::RenderAsset(
 
         return true;
     }
-
-    auto bspAsset = dynamic_cast<valve::hl1::BspAsset *>(_rootAsset);
-
-    if (bspAsset != nullptr)
+    else if (bspAsset != nullptr)
     {
         RenderBsp(bspAsset, time);
 
@@ -865,8 +857,6 @@ void GenMapApp::RenderModelsByRenderMode(
     _defaultShader.use();
     _defaultShader.setupSpriteType(9);
     _defaultShader.setupBrightness(0.5f);
-
-    _defaultShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     for (auto entity : entities)
     {

@@ -1,8 +1,6 @@
 #ifndef GLBUFFER_H
 #define GLBUFFER_H
 
-#include "glshader.h"
-
 #include <glm/glm.hpp>
 #include <vector>
 

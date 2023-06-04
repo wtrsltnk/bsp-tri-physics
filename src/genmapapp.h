@@ -98,12 +98,13 @@ protected:
 
 private:
     std::unique_ptr<IRenderer> _renderer;
+    std::unique_ptr<PhysicsService> _physics;
     AssetManager _assets;
     std::string _map;
-    valve::Asset *_rootAsset = nullptr;
+    valve::hl1::BspAsset *bspAsset = nullptr;
+    valve::hl1::MdlAsset *mdlAsset = nullptr;
+    valve::hl1::SprAsset *sprAsset = nullptr;
     glm::mat4 _projectionMatrix = glm::mat4(1.0f);
-    ShaderType _trailShader;
-    BufferType _vertexArray;
     BufferType _vertexBuffer;
     int _firstSkyVertex = 0;
     GLuint _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
@@ -112,13 +113,12 @@ private:
     std::vector<GLuint> _textureIndices;
     std::vector<GLuint> _lightmapIndices;
     std::vector<valve::tFace> _faces;
-    std::map<GLuint, valve::tFace> _facesByLightmapAtlas;
     Camera _cam;
     bool _physicsCameraMode = false;
     entt::registry _registry;
-    PhysicsService *_physics = nullptr;
     PhysicsComponent _character;
 
+    int _firstCubeVertex = 0;
     static float vertices[216];
 
     bool SetupRenderComponent(
