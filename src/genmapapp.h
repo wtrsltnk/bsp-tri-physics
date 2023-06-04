@@ -118,6 +118,7 @@ private:
     ShaderType _spriteNormalBlendingShader;
     ShaderType _solidBlendingShader;
     BufferType _vertexBuffer;
+    GLuint _emptyWhiteTexture = 0;
     std::vector<GLuint> _textureIndices;
     std::vector<GLuint> _lightmapIndices;
     std::vector<valve::tFace> _faces;

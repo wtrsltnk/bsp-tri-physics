@@ -282,10 +282,11 @@ GLuint ShaderType::compileBspShader()
         uniform mat4 u_proj;
         uniform mat4 u_view;
         uniform mat4 u_model;
+        uniform vec4 u_color;
 
-        out vec4 v_color;
         out vec2 v_uv_tex;
         out vec2 v_uv_light;
+        out vec4 v_color;
 
         void main() {
             mat4 viewmodel = u_view * u_model;
@@ -294,9 +295,9 @@ GLuint ShaderType::compileBspShader()
 
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
 
-            v_color = vec4(a_color, 1.0f);
             v_uv_light = a_texcoords.xy;
             v_uv_tex = a_texcoords.zw;
+            v_color = vec4(a_color, 1.0) * u_color;
         });
 
     static GLuint defaultShader = compile(vshader, fshader);
@@ -390,6 +391,7 @@ GLuint ShaderType::compileSprShader()
             }
 
             mat4 m = u_proj * viewmodel;
+
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
 
             v_uv_tex = a_texcoords.xy;
@@ -426,10 +428,9 @@ GLuint ShaderType::compileSkyShader()
 
             mat4 m = u_proj * viewmodel;
 
-            gl_Position = m * vec4(a_vertex, 1.0);
+            gl_Position = m * vec4(a_vertex.xyz, 1.0);
 
             v_uv_tex = a_texcoords.xy;
-            v_uv_light = a_texcoords.zw;
             v_color = vec4(a_color, 1.0) * u_color;
         });
 

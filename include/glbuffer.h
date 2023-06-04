@@ -70,7 +70,7 @@ private:
     std::vector<VertexType> _verts;
     glm::vec4 _nextUvs;
     glm::vec3 _nextCol = glm::vec3(1.0f, 1.0f, 1.0f);
-    int _nextBone = 0;
+    int _nextBone = -1;
     unsigned int _vertexArrayId = 0;
     unsigned int _vertexBufferId = 0;
 };
