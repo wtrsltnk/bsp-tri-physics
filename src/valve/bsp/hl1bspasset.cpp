@@ -176,6 +176,7 @@ bool valve::hl1::BspAsset::LoadSkyTextures()
             _skytextures[i] = new valve::Texture();
             _skytextures[i]->SetName(fs::relative(fullPath, _fs->Root() / fs::path(_fs->Mod())).generic_string());
             _skytextures[i]->SetData(x, y, n, data, false);
+            _skytextures[i]->EnsureFullOpacity();
 
             stbi_image_free(data);
         }

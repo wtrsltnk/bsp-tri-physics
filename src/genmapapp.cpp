@@ -450,9 +450,12 @@ bool GenMapApp::Tick(
 bool GenMapApp::RenderAsset(
     std::chrono::microseconds time)
 {
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+
     if (sprAsset != nullptr)
     {
-        glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
 
         glDisable(GL_BLEND);
@@ -463,8 +466,6 @@ bool GenMapApp::RenderAsset(
     }
     else if (mdlAsset != nullptr)
     {
-        glDisable(GL_BLEND);
-
         RenderStudioModelsByRenderMode(RenderModes::NormalBlending, time);
 
         return true;
@@ -484,7 +485,16 @@ void GenMapApp::SetFilename(
     const char *map)
 {
     _assets._fs.FindRootFromFilePath(root);
-    _map = map;
+
+    if (map == nullptr)
+    {
+        _assets._fs.FindRootFromFilePath(root);
+        _map = root;
+    }
+    else
+    {
+        _map = map;
+    }
 }
 
 bool GenMapApp::SetupBsp(
@@ -649,7 +659,8 @@ bool GenMapApp::SetupEntities(
             {
                 _registry.assign<ModelComponent>(entity, mc);
 
-                if (bspEntity.classname.rfind("func_wall", 0) == 0)
+                if (bspEntity.classname.rfind("func_wall", 0) == 0 ||
+                    bspEntity.classname.rfind("func_breakable", 0) == 0)
                 {
                     GrabTriangles(bspAsset, mc.Model, triangles);
                 }
@@ -856,7 +867,7 @@ void GenMapApp::RenderModelsByRenderMode(
 
     _defaultShader.use();
     _defaultShader.setupSpriteType(9);
-    _defaultShader.setupBrightness(0.5f);
+    _defaultShader.setupBrightness(0.2f);
 
     for (auto entity : entities)
     {
@@ -971,6 +982,8 @@ void GenMapApp::RenderStudioModelsByRenderMode(
     }
 
     _defaultShader.use();
+    _defaultShader.setupSpriteType(9);
+    _defaultShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     _defaultShader.setupBrightness(0.5f);
 
     valve::hl1::MdlInstance _mdlInstance;

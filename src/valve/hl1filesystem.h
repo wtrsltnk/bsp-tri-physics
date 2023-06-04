@@ -109,7 +109,7 @@ class FileSystem :
     public valve::IFileSystem
 {
 public:
-    void FindRootFromFilePath(
+    bool FindRootFromFilePath(
         const std::string &filePath);
 
     virtual std::string LocateFile(

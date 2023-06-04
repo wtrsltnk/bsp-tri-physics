@@ -18,6 +18,7 @@ int main(
     else if (argc > 1)
     {
         spdlog::debug("loading map {0}", argv[1]);
+        t.SetFilename(argv[1], nullptr);
     }
 
     return Run(&t);

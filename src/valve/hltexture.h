@@ -62,6 +62,8 @@ namespace valve
         void CorrectGamma(
             float gamma);
 
+        void EnsureFullOpacity();
+
         void SetName(
             const std::string &name);
 

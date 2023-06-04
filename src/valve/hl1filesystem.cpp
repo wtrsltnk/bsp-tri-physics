@@ -398,7 +398,7 @@ const std::string &FileSystem::Mod() const
     return _mod;
 }
 
-void FileSystem::FindRootFromFilePath(
+bool FileSystem::FindRootFromFilePath(
     const std::string &filePath)
 {
     auto path = std::filesystem::path(filePath);
@@ -407,7 +407,7 @@ void FileSystem::FindRootFromFilePath(
     {
         spdlog::error("given path ({}) has no parent path", filePath);
 
-        return;
+        return false;
     }
 
     if (!std::filesystem::is_directory(path))
@@ -420,7 +420,7 @@ void FileSystem::FindRootFromFilePath(
     {
         SetRootAndMod(path.parent_path(), "data");
 
-        return;
+        return true;
     }
 
     if (path.has_parent_path() && (fn == "maps" || fn == "models" || fn == "sprites" || fn == "sound" || fn == "gfx" || fn == "env"))
@@ -443,7 +443,7 @@ void FileSystem::FindRootFromFilePath(
             {
                 SetRootAndMod(p.path().parent_path(), lastDirectory);
 
-                return;
+                return true;
             }
         }
 
@@ -451,4 +451,6 @@ void FileSystem::FindRootFromFilePath(
         path = path.parent_path();
 
     } while (path.has_parent_path());
+
+    return false;
 }

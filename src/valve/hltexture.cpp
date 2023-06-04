@@ -240,10 +240,24 @@ void Texture::CorrectGamma(
         g *= scale;
         b *= scale;
 
-        //fill data back in
+        // fill data back in
         _data[j * _bpp + 0] = (unsigned char)r;
         _data[j * _bpp + 1] = (unsigned char)g;
         _data[j * _bpp + 2] = (unsigned char)b;
+    }
+}
+
+void Texture::EnsureFullOpacity()
+{
+    // Only images with rgba colors
+    if (_bpp < 4)
+    {
+        return;
+    }
+
+    for (int j = 0; j < (_width * _height); ++j)
+    {
+        _data[j * _bpp + 3] = 255.0f;
     }
 }
 
