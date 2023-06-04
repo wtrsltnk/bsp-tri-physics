@@ -52,6 +52,9 @@ public:
         glm::vec2 const uvs[2]);
 
     BufferType &uvs(
+        glm::vec2 const uvs);
+
+    BufferType &uvs(
         float const *uvs);
 
     BufferType &bone(

@@ -49,33 +49,10 @@ bool GenMapApp::Startup()
 
     EnableOpenGlDebug();
 
-    if (_skyShader.compileSkyShader() == 0)
-    {
-        spdlog::error("failed to compile sky shader");
-        return false;
-    }
-
-    if (_spriteNormalBlendingShader.compileSprShader() == 0)
-    {
-        spdlog::error("failed to compile sprite shader");
-        return false;
-    }
-
-    if (_studioNormalBlendingShader.compileMdlShader() == 0)
-    {
-        spdlog::error("failed to compile studio shader");
-        return false;
-    }
-
-    if (_solidBlendingShader.compileBspShader() == 0)
-    {
-        spdlog::error("failed to compile bsp shader");
-        return false;
-    }
-
-    if (_normalBlendingShader.compileDefaultShader() == 0)
+    if (_defaultShader.compileDefaultShader() == 0)
     {
         spdlog::error("failed to compile default shader");
+
         return false;
     }
 
@@ -92,9 +69,11 @@ bool GenMapApp::Startup()
         return false;
     }
 
-    auto sprAsset = dynamic_cast<valve::hl1::SprAsset *>(_rootAsset);
+    valve::hl1::BspAsset *bspAsset = nullptr;
+    valve::hl1::MdlAsset *mdlAsset = nullptr;
+    valve::hl1::SprAsset *sprAsset = nullptr;
 
-    if (sprAsset != nullptr)
+    if ((sprAsset = dynamic_cast<valve::hl1::SprAsset *>(_rootAsset)) != nullptr)
     {
         const auto entity = _registry.create();
 
@@ -115,24 +94,9 @@ bool GenMapApp::Startup()
 
         _registry.assign<SpriteComponent>(entity, BuildSpriteComponent(sprAsset));
 
-        if (!_spriteVertexArray.upload())
-        {
-            return false;
-        }
-
-        if (!_spriteNormalBlendingShader.setupAttributes(sizeof(VertexType)))
-        {
-            return false;
-        }
-
         _cam.SetPosition(glm::vec3(0.0f, 10.0f, 0.0f));
-
-        return true;
     }
-
-    auto mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(_rootAsset);
-
-    if (mdlAsset != nullptr)
+    else if ((mdlAsset = dynamic_cast<valve::hl1::MdlAsset *>(_rootAsset)) != nullptr)
     {
         auto center = mdlAsset->_header->min + ((mdlAsset->_header->max - mdlAsset->_header->min) * 0.5f);
 
@@ -155,16 +119,6 @@ bool GenMapApp::Startup()
 
         _registry.assign<StudioComponent>(entity, BuildStudioComponent(mdlAsset));
 
-        if (!_studioVertexArray.upload())
-        {
-            return false;
-        }
-
-        if (!_studioNormalBlendingShader.setupAttributes(sizeof(VertexType)))
-        {
-            return false;
-        }
-
         auto offset = glm::length(center);
         if (offset == 0.0f)
         {
@@ -172,13 +126,8 @@ bool GenMapApp::Startup()
         }
 
         _cam.SetPosition(center + glm::vec3(0.0f, offset, 0.0f));
-
-        return true;
     }
-
-    auto bspAsset = dynamic_cast<valve::hl1::BspAsset *>(_rootAsset);
-
-    if (bspAsset != nullptr)
+    else if ((bspAsset = dynamic_cast<valve::hl1::BspAsset *>(_rootAsset)) != nullptr)
     {
         glm::vec3 origin;
 
@@ -211,11 +160,23 @@ bool GenMapApp::Startup()
         _character = _physics->AddCharacter(15, 16, 45, origin);
 
         _physicsCameraMode = true;
-
-        return true;
     }
 
-    return false;
+    if (!_vertexBuffer.upload())
+    {
+        spdlog::error("failed to upload vertex data");
+
+        return false;
+    }
+
+    if (!_defaultShader.setupAttributes(sizeof(VertexType)))
+    {
+        spdlog::error("failed to setup shader attributes");
+
+        return false;
+    }
+
+    return true;
 }
 
 SpriteComponent GenMapApp::BuildSpriteComponent(
@@ -225,7 +186,7 @@ SpriteComponent GenMapApp::BuildSpriteComponent(
     SpriteComponent sc = {
         .AssetId = sprAsset->Id(),
         .Scale = scale,
-        .FirstVertexInBuffer = static_cast<int>(_spriteVertexArray.vertexCount()),
+        .FirstVertexInBuffer = static_cast<int>(_vertexBuffer.vertexCount()),
         .VertexCount = static_cast<int>(sprAsset->_vertices.size()),
     };
 
@@ -240,7 +201,9 @@ SpriteComponent GenMapApp::BuildSpriteComponent(
 
     for (auto &vert : sprAsset->_vertices)
     {
-        _spriteVertexArray
+        _vertexBuffer
+            .bone(-1)
+            .col(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
             .uvs(vert.texcoords)
             .vertex(vert.position);
     }
@@ -255,7 +218,7 @@ StudioComponent GenMapApp::BuildStudioComponent(
     StudioComponent sc = {
         .AssetId = mdlAsset->Id(),
         .Scale = scale,
-        .FirstVertexInBuffer = static_cast<int>(_studioVertexArray.vertexCount()),
+        .FirstVertexInBuffer = static_cast<int>(_vertexBuffer.vertexCount()),
         .VertexCount = static_cast<int>(mdlAsset->_vertices.size()),
     };
 
@@ -278,8 +241,9 @@ StudioComponent GenMapApp::BuildStudioComponent(
 
     for (auto &vert : mdlAsset->_vertices)
     {
-        _studioVertexArray
+        _vertexBuffer
             .bone(vert.bone)
+            .col(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
             .uvs(vert.texcoords)
             .vertex(vert.position);
     }
@@ -447,8 +411,6 @@ bool GenMapApp::Tick(
 
     RenderAsset(time);
 
-    glDisable(GL_CULL_FACE);
-
     _vertexArray.bind();
 
     auto view = _registry.view<PhysicsComponent, BallComponent>();
@@ -463,8 +425,6 @@ bool GenMapApp::Tick(
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
-
-    glEnable(GL_CULL_FACE);
 
     if (showPhysicsDebug)
     {
@@ -496,11 +456,10 @@ bool GenMapApp::RenderAsset(
     {
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
-        glDisable(GL_CULL_FACE);
 
         glDisable(GL_BLEND);
 
-        RenderSpritesByRenderMode(RenderModes::NormalBlending, _spriteNormalBlendingShader, time);
+        RenderSpritesByRenderMode(RenderModes::NormalBlending, time);
 
         return true;
     }
@@ -509,12 +468,9 @@ bool GenMapApp::RenderAsset(
 
     if (mdlAsset != nullptr)
     {
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-
         glDisable(GL_BLEND);
 
-        RenderStudioModelsByRenderMode(RenderModes::NormalBlending, _studioNormalBlendingShader, time);
+        RenderStudioModelsByRenderMode(RenderModes::NormalBlending, time);
 
         return true;
     }
@@ -593,37 +549,7 @@ bool GenMapApp::SetupBsp(
         _faces.push_back(ft);
     }
 
-    if (!_vertexBuffer.upload())
-    {
-        return false;
-    }
-
-    if (!_normalBlendingShader.setupAttributes(sizeof(VertexType)))
-    {
-        return false;
-    }
-
     if (!SetupEntities(bspAsset, origin))
-    {
-        return false;
-    }
-
-    if (!_studioVertexArray.upload())
-    {
-        return false;
-    }
-
-    if (!_studioNormalBlendingShader.setupAttributes(sizeof(VertexType)))
-    {
-        return false;
-    }
-
-    if (!_spriteVertexArray.upload())
-    {
-        return false;
-    }
-
-    if (!_spriteNormalBlendingShader.setupAttributes(sizeof(VertexType)))
     {
         return false;
     }
@@ -678,16 +604,6 @@ bool GenMapApp::SetupEntities(
             _registry.assign<ModelComponent>(entity, 0);
 
             SetupSky(bspAsset);
-
-            if (!_skyVertexBuffer.upload())
-            {
-                return false;
-            }
-
-            if (!_skyShader.setupAttributes(sizeof(VertexType)))
-            {
-                return false;
-            }
 
             RenderComponent rc = {
                 .Amount = 255,
@@ -850,55 +766,37 @@ void GenMapApp::RenderBsp(
 {
     RenderSky();
 
-    // glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-
-    ShaderType shaders[3] = {
-        _normalBlendingShader,
-        _studioNormalBlendingShader,
-        _spriteNormalBlendingShader,
-    };
-
-    ShaderType solidShaders[3] = {
-        _solidBlendingShader,
-        _studioNormalBlendingShader,
-        _spriteNormalBlendingShader,
-    };
-
     glDisable(GL_BLEND);
-    RenderByRenderMode(bspAsset, RenderModes::NormalBlending, shaders, time);
+    RenderByRenderMode(bspAsset, RenderModes::NormalBlending, time);
 
-    RenderModelsByRenderMode(bspAsset, RenderModes::ColorBlending, _normalBlendingShader);
+    RenderModelsByRenderMode(bspAsset, RenderModes::ColorBlending);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    RenderByRenderMode(bspAsset, RenderModes::AdditiveBlending, solidShaders, time);
-    RenderByRenderMode(bspAsset, RenderModes::TextureBlending, solidShaders, time);
+    RenderByRenderMode(bspAsset, RenderModes::AdditiveBlending, time);
+    RenderByRenderMode(bspAsset, RenderModes::TextureBlending, time);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    RenderByRenderMode(bspAsset, RenderModes::SolidBlending, shaders, time);
+    RenderByRenderMode(bspAsset, RenderModes::SolidBlending, time);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    RenderSpritesByRenderMode(RenderModes::GlowBlending, _spriteNormalBlendingShader, time);
+    RenderSpritesByRenderMode(RenderModes::GlowBlending, time);
 }
 
 void GenMapApp::RenderByRenderMode(
     valve::hl1::BspAsset *bspAsset,
     RenderModes mode,
-    ShaderType shaders[3],
     std::chrono::microseconds time)
 {
-    RenderModelsByRenderMode(bspAsset, mode, shaders[0]);
-    RenderStudioModelsByRenderMode(mode, shaders[1], time);
-    RenderSpritesByRenderMode(mode, shaders[2], time);
+    RenderModelsByRenderMode(bspAsset, mode);
+    RenderStudioModelsByRenderMode(mode, time);
+    RenderSpritesByRenderMode(mode, time);
 }
 
 bool GenMapApp::SetupRenderComponent(
     const entt::entity &entity,
-    RenderModes mode,
-    ShaderType &shader)
+    RenderModes mode)
 {
     auto renderComponent = _registry.get<RenderComponent>(entity);
 
@@ -909,17 +807,21 @@ bool GenMapApp::SetupRenderComponent(
 
     if (mode == RenderModes::TextureBlending || mode == RenderModes::SolidBlending)
     {
-        shader.setupColor(
+        _defaultShader.setupColor(
             glm::vec4(1.0f, 1.0f, 1.0f, float(renderComponent.Amount) / 255.0f));
     }
     else if (mode == RenderModes::ColorBlending)
     {
-        shader.setupColor(
+        _defaultShader.setupColor(
             glm::vec4(
                 float(renderComponent.Color[0] / 255.0f),
                 float(renderComponent.Color[1] / 255.0f),
                 float(renderComponent.Color[2] / 255.0f),
                 float(renderComponent.Amount) / 255.0f));
+    }
+    else
+    {
+        _defaultShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
     return true;
@@ -927,7 +829,6 @@ bool GenMapApp::SetupRenderComponent(
 
 bool GenMapApp::SetupOriginComponent(
     const entt::entity &entity,
-    ShaderType &shader,
     float scale)
 {
     auto originComponent = _registry.get<OriginComponent>(entity);
@@ -940,15 +841,14 @@ bool GenMapApp::SetupOriginComponent(
 
     modelMatrix = glm::scale(modelMatrix, glm::vec3(scale, scale, scale));
 
-    shader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), modelMatrix);
+    _defaultShader.setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), modelMatrix);
 
     return true;
 }
 
 void GenMapApp::RenderModelsByRenderMode(
     valve::hl1::BspAsset *bspAsset,
-    RenderModes mode,
-    ShaderType &shader)
+    RenderModes mode)
 {
     if (mode == RenderModes::GlowBlending)
     {
@@ -962,22 +862,20 @@ void GenMapApp::RenderModelsByRenderMode(
         return;
     }
 
-    shader.use();
-    shader.setupBrightness(0.5f);
+    _defaultShader.use();
+    _defaultShader.setupSpriteType(9);
+    _defaultShader.setupBrightness(0.5f);
 
-    if (mode == RenderModes::NormalBlending)
-    {
-        shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    }
+    _defaultShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     for (auto entity : entities)
     {
-        if (!SetupRenderComponent(entity, mode, shader))
+        if (!SetupRenderComponent(entity, mode))
         {
             continue;
         }
 
-        if (!SetupOriginComponent(entity, shader))
+        if (!SetupOriginComponent(entity))
         {
             continue;
         }
@@ -1007,7 +905,6 @@ void GenMapApp::RenderModelsByRenderMode(
 
 void GenMapApp::RenderSpritesByRenderMode(
     RenderModes mode,
-    ShaderType &shader,
     std::chrono::microseconds time)
 {
     auto dt = float(double(time.count()) / 1000000.0);
@@ -1019,10 +916,10 @@ void GenMapApp::RenderSpritesByRenderMode(
         return;
     }
 
-    glDisable(GL_CULL_FACE);
-    shader.use();
-    shader.setupBrightness(2.0f);
-    shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    _defaultShader.use();
+
+    _defaultShader.setupBrightness(0.5f);
+    _defaultShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     for (auto entity : entities)
     {
@@ -1035,18 +932,18 @@ void GenMapApp::RenderSpritesByRenderMode(
             continue;
         }
 
-        if (!SetupRenderComponent(entity, mode, shader))
+        if (!SetupRenderComponent(entity, mode))
         {
             continue;
         }
 
-        if (!SetupOriginComponent(entity, shader, spriteComponent->Scale))
+        if (!SetupOriginComponent(entity, spriteComponent->Scale))
         {
             continue;
         }
 
-        shader.setupSpriteType(asset->_type);
-        _spriteVertexArray.bind();
+        _defaultShader.setupSpriteType(asset->_type);
+        _vertexBuffer.bind();
 
         spriteComponent->Frame += (dt * 24.0f);
 
@@ -1064,15 +961,11 @@ void GenMapApp::RenderSpritesByRenderMode(
         glBindTexture(GL_TEXTURE_2D, _emptyWhiteTexture);
 
         glDrawArrays(GL_TRIANGLE_FAN, spriteComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
-
-        _spriteVertexArray.unbind();
     }
-    glEnable(GL_CULL_FACE);
 }
 
 void GenMapApp::RenderStudioModelsByRenderMode(
     RenderModes mode,
-    ShaderType &shader,
     std::chrono::microseconds time)
 {
     if (mode == RenderModes::GlowBlending)
@@ -1087,13 +980,8 @@ void GenMapApp::RenderStudioModelsByRenderMode(
         return;
     }
 
-    shader.use();
-    shader.setupBrightness(1.0f);
-
-    if (mode == RenderModes::NormalBlending)
-    {
-        shader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    }
+    _defaultShader.use();
+    _defaultShader.setupBrightness(0.5f);
 
     valve::hl1::MdlInstance _mdlInstance;
     for (auto entity : entities)
@@ -1119,19 +1007,19 @@ void GenMapApp::RenderStudioModelsByRenderMode(
 
         studioComponent->Frame = _mdlInstance.Update(studioComponent->Frame, time);
 
-        shader.BindBones(_mdlInstance._bonetransform, _mdlInstance.Asset->_boneData.size());
+        _defaultShader.BindBones(_mdlInstance._bonetransform, _mdlInstance.Asset->_boneData.size());
 
-        if (!SetupRenderComponent(entity, mode, shader))
+        if (!SetupRenderComponent(entity, mode))
         {
             continue;
         }
 
-        if (!SetupOriginComponent(entity, shader, studioComponent->Scale))
+        if (!SetupOriginComponent(entity, studioComponent->Scale))
         {
             continue;
         }
 
-        _studioVertexArray.bind();
+        _vertexBuffer.bind();
 
         std::set<size_t> indices;
         for (size_t bi = 0; bi < asset->_bodyparts.size(); bi++)
@@ -1160,9 +1048,7 @@ void GenMapApp::RenderStudioModelsByRenderMode(
             glDrawArrays(GL_TRIANGLES, studioComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
         }
 
-        _studioVertexArray.unbind();
-
-        shader.UnbindBones();
+        _defaultShader.UnbindBones();
     }
 }
 
@@ -1198,107 +1084,106 @@ void GenMapApp::SetupSky(
     const float uv_0 = 1.0f - uv_1;
     const float size = 1.0f;
 
+    _firstSkyVertex = _vertexBuffer.vertexCount();
     // if (renderFlag & SKY_BACK)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_0))
         .vertex(glm::vec3(size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_0))
         .vertex(glm::vec3(-size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_1))
         .vertex(glm::vec3(size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_1))
         .vertex(glm::vec3(-size, -size, size));
 
     // if (renderFlag & SKY_DOWN)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_0))
         .vertex(glm::vec3(size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_1))
         .vertex(glm::vec3(-size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_0))
         .vertex(glm::vec3(size, -size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_1))
         .vertex(glm::vec3(-size, -size, -size));
 
     // if (renderFlag & SKY_FRONT)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_0))
         .vertex(glm::vec3(-size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_0))
         .vertex(glm::vec3(size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_1))
         .vertex(glm::vec3(-size, -size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_1))
         .vertex(glm::vec3(size, -size, -size));
 
     // glBindTextureif (renderFlag & SKY_LEFT)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_0))
         .vertex(glm::vec3(-size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_0))
         .vertex(glm::vec3(-size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_1))
         .vertex(glm::vec3(-size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_1))
         .vertex(glm::vec3(-size, -size, -size));
 
     // if (renderFlag & SKY_RIGHT)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_1))
         .vertex(glm::vec3(size, -size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_1))
         .vertex(glm::vec3(size, -size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_0))
         .vertex(glm::vec3(size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_0))
         .vertex(glm::vec3(size, size, -size));
 
     // if (renderFlag & SKY_UP)
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_1))
         .vertex(glm::vec3(size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_1, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_1, uv_0))
         .vertex(glm::vec3(-size, size, -size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_1, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_1))
         .vertex(glm::vec3(size, size, size));
-    _skyVertexBuffer
-        .uvs(glm::vec4(uv_0, uv_0, 0, 0))
+    _vertexBuffer
+        .uvs(glm::vec2(uv_0, uv_0))
         .vertex(glm::vec3(-size, size, size));
 }
 
 void GenMapApp::RenderSky()
 {
     glDisable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
 
-    _skyShader.use();
+    _defaultShader.use();
 
-    _skyShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    _skyShader.setupSpriteType(5);
-    _skyShader.setupMatrices(
+    _defaultShader.setupSpriteType(9);
+    _defaultShader.setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    _defaultShader.setupMatrices(
         _projectionMatrix,
         _cam.GetViewMatrix(),
         glm::rotate(glm::translate(glm::mat4(1.0f), _cam.Position()), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)));
 
-    _skyVertexBuffer.bind();
+    _vertexBuffer.bind();
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _emptyWhiteTexture);
@@ -1309,7 +1194,7 @@ void GenMapApp::RenderSky()
     {
         glBindTexture(GL_TEXTURE_2D, _skyTextureIndices[i]);
 
-        glDrawArrays(GL_TRIANGLE_STRIP, i * 4, 4);
+        glDrawArrays(GL_TRIANGLE_STRIP, _firstSkyVertex + (i * 4), 4);
     }
 
     glEnable(GL_DEPTH_TEST);

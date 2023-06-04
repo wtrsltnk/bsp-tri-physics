@@ -37,17 +37,17 @@ bool SprAsset::Load(
     int h = int(_header->height / 2.0f);
 
     tVertex verts[4];
-    verts[0].position = glm::vec3(-w, 0.0f, -h);
-    verts[0].texcoords[0] = glm::vec2(0.0f, 1.0f);
+    verts[0].position = glm::vec3(-w, 0.0f, h);
+    verts[0].texcoords[0] = verts[0].texcoords[1] = glm::vec2(0.0f, 0.0f);
     verts[0].bone = -1;
-    verts[1].position = glm::vec3(w, 0.0f, -h);
-    verts[1].texcoords[0] = glm::vec2(1.0f, 1.0f);
+    verts[1].position = glm::vec3(w, 0.0f, h);
+    verts[1].texcoords[0] = verts[1].texcoords[1] = glm::vec2(1.0f, 0.0f);
     verts[1].bone = -1;
-    verts[2].position = glm::vec3(w, 0.0f, h);
-    verts[2].texcoords[0] = glm::vec2(1.0f, 0.0f);
+    verts[2].position = glm::vec3(w, 0.0f, -h);
+    verts[2].texcoords[0] = verts[2].texcoords[1] = glm::vec2(1.0f, 1.0f);
     verts[2].bone = -1;
-    verts[3].position = glm::vec3(-w, 0.0f, h);
-    verts[3].texcoords[0] = glm::vec2(0.0f, 0.0f);
+    verts[3].position = glm::vec3(-w, 0.0f, -h);
+    verts[3].texcoords[0] = verts[3].texcoords[1] = glm::vec2(0.0f, 1.0f);
     verts[3].bone = -1;
 
     for (int i = 0; i < 4; i++)

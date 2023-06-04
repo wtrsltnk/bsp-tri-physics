@@ -91,6 +91,14 @@ BufferType &BufferType::uvs(
 }
 
 BufferType &BufferType::uvs(
+    glm::vec2 const uvs)
+{
+    _nextUvs = glm::vec4(uvs.x, uvs.y, uvs.x, uvs.y);
+
+    return *this;
+}
+
+BufferType &BufferType::uvs(
     float const *uvs)
 {
     _nextUvs = glm::vec4(uvs[0], uvs[1], uvs[2], uvs[3]);

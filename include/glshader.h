@@ -26,10 +26,6 @@ public:
         int boneCount = 0);
 
     GLuint compileDefaultShader();
-    GLuint compileBspShader();
-    GLuint compileMdlShader();
-    GLuint compileSprShader();
-    GLuint compileSkyShader();
 
     void setupMatrices(
         const glm::mat4 &proj,

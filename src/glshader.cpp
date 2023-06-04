@@ -242,118 +242,6 @@ GLuint ShaderType::compileDefaultShader()
         layout(location = 0) in vec3 a_vertex;
         layout(location = 1) in vec3 a_color;
         layout(location = 2) in vec4 a_texcoords;
-
-        uniform mat4 u_proj;
-        uniform mat4 u_view;
-        uniform mat4 u_model;
-        uniform vec4 u_color;
-
-        out vec2 v_uv_tex;
-        out vec2 v_uv_light;
-        out vec4 v_color;
-
-        void main() {
-            mat4 viewmodel = u_view * u_model;
-
-            mat4 m = u_proj * viewmodel;
-
-            gl_Position = m * vec4(a_vertex.xyz, 1.0);
-
-            v_uv_light = a_texcoords.xy;
-            v_uv_tex = a_texcoords.zw;
-            v_color = vec4(a_color, 1.0) * u_color;
-        }));
-
-    static GLuint defaultShader = compile(vshader, fshader);
-
-    return defaultShader;
-}
-
-GLuint ShaderType::compileBspShader()
-{
-    spdlog::debug("compiling BSP shader");
-
-    const char *vshader = GLSL(
-        layout(location = 0) in vec3 a_vertex;
-        layout(location = 1) in vec3 a_color;
-        layout(location = 2) in vec4 a_texcoords;
-        layout(location = 3) in int a_bone;
-
-        uniform mat4 u_proj;
-        uniform mat4 u_view;
-        uniform mat4 u_model;
-        uniform vec4 u_color;
-
-        out vec2 v_uv_tex;
-        out vec2 v_uv_light;
-        out vec4 v_color;
-
-        void main() {
-            mat4 viewmodel = u_view * u_model;
-
-            mat4 m = u_proj * viewmodel;
-
-            gl_Position = m * vec4(a_vertex.xyz, 1.0);
-
-            v_uv_light = a_texcoords.xy;
-            v_uv_tex = a_texcoords.zw;
-            v_color = vec4(a_color, 1.0) * u_color;
-        });
-
-    static GLuint defaultShader = compile(vshader, fshader);
-
-    return defaultShader;
-}
-
-GLuint ShaderType::compileMdlShader()
-{
-    spdlog::debug("compiling MDL shader");
-
-    const char *mdlvshader = GLSL(
-        layout(location = 0) in vec3 a_vertex;
-        layout(location = 1) in vec3 a_color;
-        layout(location = 2) in vec4 a_texcoords;
-        layout(location = 3) in int a_bone;
-
-        uniform mat4 u_proj;
-        uniform mat4 u_view;
-        uniform mat4 u_model;
-        uniform vec4 u_color;
-        layout(std140) uniform BonesBlock {
-            mat4 u_bones[64];
-        };
-
-        out vec2 v_uv_tex;
-        out vec2 v_uv_light;
-        out vec4 v_color;
-
-        void main() {
-            mat4 viewmodel = u_view * u_model;
-
-            mat4 m = u_proj * viewmodel;
-
-            if (a_bone >= 0) m = m * u_bones[a_bone];
-
-            gl_Position = m * vec4(a_vertex.xyz, 1.0);
-
-            v_uv_tex = a_texcoords.xy;
-            v_uv_light = a_texcoords.zw;
-            v_color = vec4(a_color, 1.0) * u_color;
-        });
-
-    static GLuint defaultShader = compile(mdlvshader, fshader, 64);
-
-    return defaultShader;
-}
-
-GLuint ShaderType::compileSprShader()
-{
-    spdlog::debug("compiling SPR shader");
-
-    const char *vshader = GLSL(
-        layout(location = 0) in vec3 a_vertex;
-        layout(location = 1) in vec3 a_color;
-        layout(location = 2) in vec4 a_texcoords;
         layout(location = 3) in int a_bone;
 
         uniform mat4 u_proj;
@@ -361,6 +249,9 @@ GLuint ShaderType::compileSprShader()
         uniform mat4 u_model;
         uniform vec4 u_color;
         uniform int u_spritetype; // 0 for cylindrical; 1 for spherical; 2 for Oriented
+        layout(std140) uniform BonesBlock {
+            mat4 u_bones[64];
+        };
 
         out vec2 v_uv_tex;
         out vec2 v_uv_light;
@@ -376,7 +267,7 @@ GLuint ShaderType::compileSprShader()
                 viewmodel[0][1] = 0.0;
                 viewmodel[0][2] = 0.0;
 
-                // Second colunm.
+                       // Second colunm.
                 viewmodel[1][0] = 0.0;
                 viewmodel[1][1] = 0.0;
                 viewmodel[1][2] = length(viewmodel[1]);
@@ -392,49 +283,16 @@ GLuint ShaderType::compileSprShader()
 
             mat4 m = u_proj * viewmodel;
 
-            gl_Position = m * vec4(a_vertex.xyz, 1.0);
-
-            v_uv_tex = a_texcoords.xy;
-            v_uv_light = a_texcoords.zw;
-            v_color = vec4(a_color, 1.0) * u_color;
-        });
-
-    static GLuint defaultShader = compile(vshader, fshader);
-
-    return defaultShader;
-}
-
-GLuint ShaderType::compileSkyShader()
-{
-    spdlog::debug("compiling SKY shader");
-
-    const char *vshader = GLSL(
-        layout(location = 0) in vec3 a_vertex;
-        layout(location = 1) in vec3 a_color;
-        layout(location = 2) in vec4 a_texcoords;
-        layout(location = 3) in int a_bone;
-
-        uniform mat4 u_proj;
-        uniform mat4 u_view;
-        uniform mat4 u_model;
-        uniform vec4 u_color;
-
-        out vec2 v_uv_tex;
-        out vec2 v_uv_light;
-        out vec4 v_color;
-
-        void main() {
-            mat4 viewmodel = u_view * u_model;
-
-            mat4 m = u_proj * viewmodel;
+            if (a_bone >= 0) m = m * u_bones[a_bone];
 
             gl_Position = m * vec4(a_vertex.xyz, 1.0);
 
-            v_uv_tex = a_texcoords.xy;
+            v_uv_light = a_texcoords.xy;
+            v_uv_tex = a_texcoords.zw;
             v_color = vec4(a_color, 1.0) * u_color;
-        });
+        }));
 
-    static GLuint defaultShader = compile(vshader, fshader);
+    static GLuint defaultShader = compile(vshader, fshader, 64);
 
     return defaultShader;
 }

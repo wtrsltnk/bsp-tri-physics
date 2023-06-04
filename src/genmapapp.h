@@ -74,22 +74,18 @@ protected:
     void RenderByRenderMode(
         valve::hl1::BspAsset *bspAsset,
         RenderModes mode,
-        ShaderType shaders[3],
         std::chrono::microseconds time);
 
     void RenderModelsByRenderMode(
         valve::hl1::BspAsset *bspAsset,
-        RenderModes mode,
-        ShaderType &shader);
+        RenderModes mode);
 
     void RenderStudioModelsByRenderMode(
         RenderModes mode,
-        ShaderType &shader,
         std::chrono::microseconds time);
 
     void RenderSpritesByRenderMode(
         RenderModes mode,
-        ShaderType &shader,
         std::chrono::microseconds time);
 
     void HandleBspInput(
@@ -107,17 +103,11 @@ private:
     valve::Asset *_rootAsset = nullptr;
     glm::mat4 _projectionMatrix = glm::mat4(1.0f);
     ShaderType _trailShader;
-    ShaderType _skyShader;
-    BufferType _skyVertexBuffer;
     BufferType _vertexArray;
-    BufferType _studioVertexArray;
-    BufferType _spriteVertexArray;
-    GLuint _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
-    ShaderType _normalBlendingShader;
-    ShaderType _studioNormalBlendingShader;
-    ShaderType _spriteNormalBlendingShader;
-    ShaderType _solidBlendingShader;
     BufferType _vertexBuffer;
+    int _firstSkyVertex = 0;
+    GLuint _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
+    ShaderType _defaultShader;
     GLuint _emptyWhiteTexture = 0;
     std::vector<GLuint> _textureIndices;
     std::vector<GLuint> _lightmapIndices;
@@ -133,12 +123,10 @@ private:
 
     bool SetupRenderComponent(
         const entt::entity &entity,
-        RenderModes mode,
-        ShaderType &shader);
+        RenderModes mode);
 
     bool SetupOriginComponent(
         const entt::entity &entity,
-        ShaderType &shader,
         float scale = 1.0f);
 
     StudioComponent BuildStudioComponent(
