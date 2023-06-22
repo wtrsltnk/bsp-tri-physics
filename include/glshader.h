@@ -4,12 +4,13 @@
 #include "glad/glad.h"
 
 #include <glm/glm.hpp>
+#include <irenderer.hpp>
 #include <string>
 #include <vector>
 
 #define GLSL(src) "#version 400\n" #src
 
-class ShaderType
+class ShaderType : public IShader
 {
 public:
     ShaderType();
@@ -41,8 +42,7 @@ public:
     void setupSpriteType(
         int type);
 
-    bool setupAttributes(
-        GLsizei vertexSize);
+    bool setupAttributes();
 
     void BindBones(
         const glm::mat4 m[],

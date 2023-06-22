@@ -1,5 +1,6 @@
 #include "glshader.h"
 
+#include <glbuffer.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -148,8 +149,7 @@ void ShaderType::setupSpriteType(
     glUniform1i(_u_spritetypeId, type);
 }
 
-bool ShaderType::setupAttributes(
-    GLsizei vertexSize)
+bool ShaderType::setupAttributes()
 {
     use();
 
@@ -158,14 +158,14 @@ bool ShaderType::setupAttributes(
         sizeof(glm::vec3) / sizeof(float),
         GL_FLOAT,
         GL_FALSE,
-        vertexSize, 0);
+        sizeof(VertexType), 0);
 
     glVertexAttribPointer(
         1,
         sizeof(glm::vec3) / sizeof(float),
         GL_FLOAT,
         GL_FALSE,
-        vertexSize,
+        sizeof(VertexType),
         reinterpret_cast<const GLvoid *>(sizeof(glm::vec3)));
 
     glVertexAttribPointer(
@@ -173,7 +173,7 @@ bool ShaderType::setupAttributes(
         sizeof(glm::vec4) / sizeof(float),
         GL_FLOAT,
         GL_FALSE,
-        vertexSize,
+        sizeof(VertexType),
         reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3)));
 
     glVertexAttribPointer(
@@ -181,7 +181,7 @@ bool ShaderType::setupAttributes(
         1,
         GL_FLOAT,
         GL_FALSE,
-        vertexSize,
+        sizeof(VertexType),
         reinterpret_cast<const GLvoid *>(sizeof(glm::vec3) + sizeof(glm::vec3) + sizeof(glm::vec4)));
 
     auto textLocation = glGetUniformLocation(_shaderId, "u_tex0");
@@ -267,7 +267,7 @@ GLuint ShaderType::compileDefaultShader()
                 viewmodel[0][1] = 0.0;
                 viewmodel[0][2] = 0.0;
 
-                       // Second colunm.
+                // Second colunm.
                 viewmodel[1][0] = 0.0;
                 viewmodel[1][1] = 0.0;
                 viewmodel[1][2] = length(viewmodel[1]);

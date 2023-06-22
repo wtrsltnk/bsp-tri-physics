@@ -14,9 +14,9 @@
 #include <entt/entt.hpp>
 #include <glbuffer.h>
 #include <glm/glm.hpp>
-#include <glshader.h>
 #include <irenderer.hpp>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -55,12 +55,10 @@ protected:
         valve::hl1::BspAsset *bspAsset);
 
     bool SetupBsp(
-        valve::hl1::BspAsset *bspAsset,
-        glm::vec3 &origin);
+        valve::hl1::BspAsset *bspAsset);
 
     bool SetupEntities(
-        valve::hl1::BspAsset *bspAsset,
-        glm::vec3 &origin);
+        valve::hl1::BspAsset *bspAsset);
 
     bool RenderAsset(
         std::chrono::microseconds time);
@@ -108,7 +106,7 @@ private:
     BufferType _vertexBuffer;
     int _firstSkyVertex = 0;
     GLuint _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
-    ShaderType _defaultShader;
+    std::unique_ptr<IShader> _defaultShader;
     GLuint _emptyWhiteTexture = 0;
     std::vector<GLuint> _textureIndices;
     std::vector<GLuint> _lightmapIndices;
@@ -136,6 +134,9 @@ private:
     SpriteComponent BuildSpriteComponent(
         valve::hl1::SprAsset *sprAsset,
         float scale = 1.0f);
+
+    OriginComponent BuildOriginComponent(
+        valve::hl1::tBSPEntity &bspEntity);
 
     void GrabTriangles(
         valve::hl1::BspAsset *bspAsset,

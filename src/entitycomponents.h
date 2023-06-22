@@ -15,6 +15,11 @@ struct OriginComponent
     glm::vec3 Angles;
 };
 
+struct PlayerStartComponent
+{
+    std::string className;
+};
+
 struct ModelComponent
 {
     long AssetId = 0;
