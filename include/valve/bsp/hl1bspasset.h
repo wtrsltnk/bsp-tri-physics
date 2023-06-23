@@ -72,6 +72,8 @@ namespace valve
             virtual bool Load(
                 const std::string &filename);
 
+            virtual AssetTypes AssetType() { return AssetTypes::Bsp; }
+
             tBSPEntity *FindEntityByClassname(
                 const std::string &classname);
 

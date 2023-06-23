@@ -56,6 +56,7 @@ if (bullet3_ADDED)
 endif()
 
 add_executable(bsp-tri-physics
+    README.md
     include/application.h
     include/glad.c
     include/glad/glad.h
@@ -65,10 +66,23 @@ add_executable(bsp-tri-physics
     include/irenderer.hpp
     include/stb_image.h
     include/stb_rect_pack.h
+    include/valve/bsp/hl1bspasset.h
+    include/valve/bsp/hl1bsptypes.h
+    include/valve/bsp/hl1wadasset.h
+    include/valve/hl1filesystem.h
+    include/valve/hltexture.h
+    include/valve/hltypes.h
+    include/valve/mdl/hl1mdlasset.h
+    include/valve/mdl/hl1mdlinstance.h
+    include/valve/mdl/hl1mdltypes.h
+    include/valve/spr/hl1sprasset.h
+    include/valve/spr/hl1sprtypes.h
     src/assetmanager.cpp
     src/assetmanager.h
     src/camera.cpp
     src/camera.h
+    src/engine.cpp
+    src/engine.hpp
     src/entitycomponents.h
     src/genmapapp.cpp
     src/genmapapp.h
@@ -82,25 +96,13 @@ add_executable(bsp-tri-physics
     src/stb_image.cpp
     src/stb_rect_pack.cpp
     src/valve/bsp/hl1bspasset.cpp
-    src/valve/bsp/hl1bspasset.h
-    src/valve/bsp/hl1bsptypes.h
     src/valve/bsp/hl1wadasset.cpp
-    src/valve/bsp/hl1wadasset.h
     src/valve/hl1filesystem.cpp
-    src/valve/hl1filesystem.h
     src/valve/hltexture.cpp
-    src/valve/hltexture.h
-    src/valve/hltypes.h
     src/valve/mdl/hl1mdlasset.cpp
-    src/valve/mdl/hl1mdlasset.h
     src/valve/mdl/hl1mdlinstance.cpp
-    src/valve/mdl/hl1mdlinstance.h
-    src/valve/mdl/hl1mdltypes.h
     src/valve/spr/hl1sprasset.cpp
-    src/valve/spr/hl1sprasset.h
-    src/valve/spr/hl1sprtypes.h
     src/vertexarray.cpp
-    README.md
 )
 
 if(WIN32)

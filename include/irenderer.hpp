@@ -45,8 +45,25 @@ public:
         bool repeat,
         unsigned char *data) = 0;
 
+    virtual unsigned int LoadLightmap(
+        int width,
+        int height,
+        int bpp,
+        bool repeat,
+        unsigned char *data) = 0;
+
     virtual std::unique_ptr<IShader> LoadShader(
         const std::string &shaderName) = 0;
+
+    virtual void BindTexture(
+        unsigned int index) = 0;
+
+    virtual void BindLightmap(
+        unsigned int index) = 0;
+
+    virtual void EnableDepthTesting() = 0;
+
+    virtual void DisableDepthTesting() = 0;
 };
 
 #endif // IRENDERER_H

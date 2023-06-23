@@ -1,5 +1,6 @@
-#include "hl1sprasset.h"
-#include "../hltexture.h"
+#include <valve/spr/hl1sprasset.h>
+
+#include <valve/hltexture.h>
 
 using namespace valve::hl1;
 

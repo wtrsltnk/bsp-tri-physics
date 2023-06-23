@@ -1,4 +1,4 @@
-#include "hl1filesystem.h"
+#include <valve/hl1filesystem.h>
 
 #include <spdlog/spdlog.h>
 

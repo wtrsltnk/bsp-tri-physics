@@ -116,6 +116,9 @@ namespace valve
     class IFileSystem
     {
     public:
+        virtual bool FindRootFromFilePath(
+            const std::string &filePath) = 0;
+
         virtual std::string LocateFile(
             const std::string &relativeFilename) = 0;
 
@@ -135,6 +138,15 @@ namespace valve
         std::string _mod;
     };
 
+    enum AssetTypes
+    {
+        Bsp,
+        Mdl,
+        Spr,
+        Tex,
+        Wad,
+    };
+
     class Asset
     {
     public:
@@ -151,6 +163,8 @@ namespace valve
             const std::string &filename) = 0;
 
         long Id() const { return _id; }
+
+        virtual AssetTypes AssetType() = 0;
 
     protected:
         IFileSystem *_fs;

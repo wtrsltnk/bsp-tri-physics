@@ -7,6 +7,11 @@
 #include <ranges>
 #include <string_view>
 
+AssetManager::AssetManager(
+    valve::IFileSystem *fileSystem)
+    : _fs(fileSystem)
+{}
+
 inline bool ends_with(
     std::string const &value,
     std::string const &ending)
@@ -30,15 +35,15 @@ valve::Asset *AssetManager::LoadAsset(
     // TODO these compares are case sensitive
     if (ends_with(assetName, ".bsp"))
     {
-        asset = new valve::hl1::BspAsset(&_fs);
+        asset = new valve::hl1::BspAsset(_fs);
     }
     else if (ends_with(assetName, ".mdl"))
     {
-        asset = new valve::hl1::MdlAsset(&_fs);
+        asset = new valve::hl1::MdlAsset(_fs);
     }
     else if (ends_with(assetName, ".spr"))
     {
-        asset = new valve::hl1::SprAsset(&_fs);
+        asset = new valve::hl1::SprAsset(_fs);
     }
     else
     {

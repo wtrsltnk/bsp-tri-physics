@@ -1,4 +1,4 @@
-#include "hltexture.h"
+#include <valve/hltexture.h>
 
 #include <cstring>
 #include <glm/glm.hpp>

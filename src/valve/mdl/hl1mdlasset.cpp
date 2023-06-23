@@ -1,4 +1,4 @@
-#include "hl1mdlasset.h"
+#include <valve/mdl/hl1mdlasset.h>
 
 #include <sstream>
 

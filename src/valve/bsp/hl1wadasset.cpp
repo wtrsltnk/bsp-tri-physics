@@ -1,4 +1,4 @@
-#include "hl1wadasset.h"
+#include <valve/bsp/hl1wadasset.h>
 
 #include <algorithm>
 #include <cctype>

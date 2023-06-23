@@ -51,7 +51,7 @@ protected:
     friend class FileSystemSearchPathOpenFile;
 
     void CloseFile(
-        FileSystemSearchPathOpenFile* file);
+        FileSystemSearchPathOpenFile *file);
 };
 
 class PakSearchPath :
@@ -102,14 +102,14 @@ private:
     friend class PakSearchPathOpenFile;
 
     void CloseFile(
-        PakSearchPathOpenFile* file);
+        PakSearchPathOpenFile *file);
 };
 
 class FileSystem :
     public valve::IFileSystem
 {
 public:
-    bool FindRootFromFilePath(
+    virtual bool FindRootFromFilePath(
         const std::string &filePath);
 
     virtual std::string LocateFile(

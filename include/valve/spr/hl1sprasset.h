@@ -27,6 +27,8 @@ namespace valve
             virtual bool Load(
                 const std::string &filename);
 
+            virtual AssetTypes AssetType() { return AssetTypes::Spr; }
+
             // These are parsed from the mapped data
             std::vector<Texture *> _textures;
             std::vector<tFace> _faces;

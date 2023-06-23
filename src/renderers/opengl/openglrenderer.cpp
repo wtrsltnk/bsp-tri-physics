@@ -13,6 +13,31 @@ unsigned int OpenGlRenderer::LoadTexture(
     bool repeat,
     unsigned char *data)
 {
+    glActiveTexture(GL_TEXTURE0);
+
+    return LoadActualTexture(width, height, bpp, repeat, data);
+}
+
+unsigned int OpenGlRenderer::LoadLightmap(
+    int width,
+    int height,
+    int bpp,
+    bool repeat,
+    unsigned char *data)
+{
+    glActiveTexture(GL_TEXTURE1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    return LoadActualTexture(width, height, bpp, repeat, data);
+}
+
+unsigned int OpenGlRenderer::LoadActualTexture(
+    int width,
+    int height,
+    int bpp,
+    bool repeat,
+    unsigned char *data)
+{
     GLuint format = GL_RGB;
     GLuint glIndex = 0;
 
@@ -80,4 +105,28 @@ std::unique_ptr<IShader> OpenGlRenderer::LoadShader(
     }
 
     return std::move(shader);
+}
+
+void OpenGlRenderer::BindTexture(
+    unsigned int index)
+{
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, index);
+}
+
+void OpenGlRenderer::BindLightmap(
+    unsigned int index)
+{
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, index);
+}
+
+void OpenGlRenderer::EnableDepthTesting()
+{
+    glEnable(GL_DEPTH_TEST);
+}
+
+void OpenGlRenderer::DisableDepthTesting()
+{
+    glDisable(GL_DEPTH_TEST);
 }

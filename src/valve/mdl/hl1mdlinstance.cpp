@@ -1,4 +1,4 @@
-#include "hl1mdlinstance.h"
+#include <valve/mdl/hl1mdlinstance.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 

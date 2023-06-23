@@ -1,12 +1,12 @@
-#include "hl1bspasset.h"
+#include <valve/bsp/hl1bspasset.h>
 
-#include "hl1bsptypes.h"
 #include "stb_rect_pack.h"
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <stb_image.h>
+#include <valve/bsp/hl1bsptypes.h>
 
 namespace fs = std::filesystem;
 using namespace valve::hl1;

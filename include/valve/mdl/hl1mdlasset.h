@@ -38,6 +38,8 @@ namespace valve
             virtual bool Load(
                 const std::string &filename);
 
+            virtual AssetTypes AssetType() { return AssetTypes::Mdl; }
+
             // File format headers
             tMDLHeader *_header;
             tMDLHeader *_textureHeader;

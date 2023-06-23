@@ -26,6 +26,8 @@ namespace valve
             bool Load(
                 const std::string &filename);
 
+            virtual AssetTypes AssetType() { return AssetTypes::Wad; }
+
             bool IsLoaded() const;
 
             int IndexOf(
