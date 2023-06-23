@@ -115,7 +115,7 @@ bool Engine::Load(
 
         auto entities = _registry.view<PlayerStartComponent, OriginComponent>();
 
-        std::srand(std::time(nullptr));
+        std::srand(static_cast<unsigned int>(std::time(nullptr)));
         if (!entities.empty())
         {
             auto size = entities.size();
@@ -651,8 +651,8 @@ void Engine::Update(
     }
 
     _cam.ProcessMouseMovement(
-        inputState.MousePointerPosition[0],
-        inputState.MousePointerPosition[1],
+        float(inputState.MousePointerPosition[0]),
+        float(inputState.MousePointerPosition[1]),
         true);
 }
 

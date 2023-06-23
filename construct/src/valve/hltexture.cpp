@@ -257,7 +257,7 @@ void Texture::EnsureFullOpacity()
 
     for (int j = 0; j < (_width * _height); ++j)
     {
-        _data[j * _bpp + 3] = 255.0f;
+        _data[j * _bpp + 3] = 255;
     }
 }
 

@@ -55,84 +55,97 @@ if (bullet3_ADDED)
     target_include_directories(bullet3 INTERFACE ${bullet3_SOURCE_DIR}/src)
 endif()
 
-add_executable(bsp-tri-physics
-    README.md
-    include/application.h
-    include/glad.c
-    include/glad/glad.h
-    include/glbuffer.h
-    include/glshader.h
-    include/iphysicsservice.hpp
-    include/irenderer.hpp
-    include/stb_image.h
-    include/stb_rect_pack.h
-    include/valve/bsp/hl1bspasset.h
-    include/valve/bsp/hl1bsptypes.h
-    include/valve/bsp/hl1wadasset.h
-    include/valve/hl1filesystem.h
-    include/valve/hltexture.h
-    include/valve/hltypes.h
-    include/valve/mdl/hl1mdlasset.h
-    include/valve/mdl/hl1mdlinstance.h
-    include/valve/mdl/hl1mdltypes.h
-    include/valve/spr/hl1sprasset.h
-    include/valve/spr/hl1sprtypes.h
-    src/assetmanager.cpp
-    src/assetmanager.h
-    src/camera.cpp
-    src/camera.h
-    src/engine.cpp
-    src/engine.hpp
-    src/entitycomponents.h
-    src/genmapapp.cpp
-    src/genmapapp.h
-    src/glbuffer.cpp
-    src/glshader.cpp
-    src/main.cpp
-    src/physicsservice.cpp
-    src/physicsservice.hpp
-    src/renderers/opengl/openglrenderer.cpp
-    src/renderers/opengl/openglrenderer.hpp
-    src/stb_image.cpp
-    src/stb_rect_pack.cpp
-    src/valve/bsp/hl1bspasset.cpp
-    src/valve/bsp/hl1wadasset.cpp
-    src/valve/hl1filesystem.cpp
-    src/valve/hltexture.cpp
-    src/valve/mdl/hl1mdlasset.cpp
-    src/valve/mdl/hl1mdlinstance.cpp
-    src/valve/spr/hl1sprasset.cpp
-    src/vertexarray.cpp
+add_library(glad
+    common/include/glad/glad.h
+    common/src/glad.c
 )
 
 if(WIN32)
-    find_package(OPENGL REQUIRED)
-
-    target_sources(bsp-tri-physics
-        PUBLIC
-            include/application-win32.cpp
-            include/glad_wgl.c
-    )
-
-    target_link_libraries(bsp-tri-physics
+    target_sources(glad
         PRIVATE
-            ${OPENGL_LIBRARIES}
+            common/src/glad_wgl.c
     )
 endif()
 
-target_sources(bsp-tri-physics
-    PRIVATE
-        include/GL/wglext.h
+target_include_directories(glad
+    PUBLIC
+        common/include
 )
 
-target_include_directories(bsp-tri-physics
+add_library(stb
+    common/include/stb_image.h
+    common/include/stb_rect_pack.h
+    common/src/stb_image.cpp
+    common/src/stb_rect_pack.cpp
+)
+
+target_include_directories(stb
+    PUBLIC
+        common/include
+)
+
+add_library(construct
+    construct/include/assetmanager.h
+    construct/include/camera.h
+    construct/include/engine.hpp
+    construct/include/entities.hpp
+    construct/include/entitycomponents.h
+    construct/include/glbuffer.h
+    construct/include/glshader.h
+    construct/include/iassetmanager.hpp
+    construct/include/inputstate.h
+    construct/include/iphysicsservice.hpp
+    construct/include/irenderer.hpp
+    construct/include/valve/bsp/hl1bspasset.h
+    construct/include/valve/bsp/hl1bsptypes.h
+    construct/include/valve/bsp/hl1wadasset.h
+    construct/include/valve/hl1filesystem.h
+    construct/include/valve/hltexture.h
+    construct/include/valve/hltypes.h
+    construct/include/valve/mdl/hl1mdlasset.h
+    construct/include/valve/mdl/hl1mdlinstance.h
+    construct/include/valve/mdl/hl1mdltypes.h
+    construct/include/valve/spr/hl1sprasset.h
+    construct/include/valve/spr/hl1sprtypes.h
+    construct/src/assetmanager.cpp
+    construct/src/camera.cpp
+    construct/src/engine.cpp
+    construct/src/glbuffer.cpp
+    construct/src/glshader.cpp
+    construct/src/physicsservice.cpp
+    construct/src/valve/bsp/hl1bspasset.cpp
+    construct/src/valve/bsp/hl1wadasset.cpp
+    construct/src/valve/hl1filesystem.cpp
+    construct/src/valve/hltexture.cpp
+    construct/src/valve/mdl/hl1mdlasset.cpp
+    construct/src/valve/mdl/hl1mdlinstance.cpp
+    construct/src/valve/spr/hl1sprasset.cpp
+    construct/src/vertexarray.cpp
+)
+
+target_include_directories(construct
+    PUBLIC
+        construct/include
+)
+
+target_link_libraries(construct
     PRIVATE
-        include
+        glm
+)
+
+target_compile_features(construct
+    PUBLIC
+        cxx_std_20
+        cxx_auto_type
+        cxx_nullptr
+        cxx_range_for
+        cxx_thread_local
+)
+
+target_link_libraries(construct
+    PUBLIC
         glad
-)
-
-target_link_libraries(bsp-tri-physics
-    PRIVATE
+        stb
         glm
         spdlog
         EnTT
@@ -143,13 +156,43 @@ target_link_libraries(bsp-tri-physics
         bullet3
 )
 
-target_compile_features(bsp-tri-physics
+add_executable(bsp-tri-physics
+    README.md
+    game/include/application.h
+    game/src/genmapapp.cpp
+    game/src/genmapapp.h
+    game/src/main.cpp
+    game/src/renderers/opengl/openglrenderer.cpp
+    game/src/renderers/opengl/openglrenderer.hpp
+)
+
+if(WIN32)
+    find_package(OPENGL REQUIRED)
+
+    target_sources(bsp-tri-physics
+        PUBLIC
+            game/src/application-win32.cpp
+    )
+
+    target_link_libraries(bsp-tri-physics
+        PRIVATE
+            ${OPENGL_LIBRARIES}
+    )
+endif()
+
+target_include_directories(bsp-tri-physics
     PRIVATE
-        cxx_std_20
-        cxx_auto_type
-        cxx_nullptr
-        cxx_range_for
-        cxx_thread_local
+        game/include
+)
+
+target_link_libraries(bsp-tri-physics
+    PRIVATE
+        glad
+        stb
+        construct
+        glm
+        spdlog
+        EnTT
 )
 
 if(MINGW)

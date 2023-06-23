@@ -1,7 +1,7 @@
 #ifndef GLSHADER_H
 #define GLSHADER_H
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 #include <glm/glm.hpp>
 #include <irenderer.hpp>

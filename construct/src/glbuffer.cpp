@@ -1,6 +1,7 @@
 #include "glbuffer.h"
 
-#include "glad/glad.h"
+#include <glad/glad.h>
+
 #include "glshader.h"
 #include <map>
 

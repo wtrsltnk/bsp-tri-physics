@@ -1,7 +1,7 @@
 #ifndef GENMAPAPP_H
 #define GENMAPAPP_H
 
-#include "engine.hpp"
+#include <engine.hpp>
 
 #include <application.h>
 #include <chrono>
