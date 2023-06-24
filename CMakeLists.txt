@@ -1,85 +1,27 @@
 cmake_minimum_required(VERSION 3.7)
 
 include(cmake/CPM.cmake)
+include(cmake/Dependencies.cmake)
 
 project(bsp-tri-physics)
 
-CPMAddPackage(
-    NAME spdlog
-    GITHUB_REPOSITORY gabime/spdlog
-    VERSION 1.7.0
-)
-
-CPMAddPackage(
-    NAME glm
-    GITHUB_REPOSITORY g-truc/glm
-    GIT_TAG 0.9.9.7
-)
-
-CPMAddPackage(
-    NAME EnTT
-    VERSION 3.1.1
-    GITHUB_REPOSITORY skypjack/entt
-    # EnTT's CMakeLists screws with configuration options
-    DOWNLOAD_ONLY True
-)
-
-if (EnTT_ADDED)
-    add_library(EnTT INTERFACE)
-    target_include_directories(EnTT INTERFACE ${EnTT_SOURCE_DIR}/src)
-endif()
-
-CPMAddPackage(
-    NAME bullet3
-    GITHUB_REPOSITORY bulletphysics/bullet3
-    GIT_TAG 2.89
-    OPTIONS
-        "USE_DOUBLE_PRECISION Off"
-        "USE_GRAPHICAL_BENCHMARK Off"
-        "USE_CUSTOM_VECTOR_MATH Off"
-        "USE_MSVC_INCREMENTAL_LINKING Off"
-        "USE_MSVC_RUNTIME_LIBRARY_DLL On"
-        "USE_GLUT Off"
-        "BUILD_DEMOS Off"
-        "BUILD_CPU_DEMOS Off"
-        "BUILD_BULLET3 Off"
-        "BUILD_BULLET2_DEMOS Off"
-        "BUILD_EXTRAS Off"
-        "INSTALL_EXTRA_LIBS Off"
-        "BUILD_UNIT_TESTS Off"
-        "INSTALL_LIBS On"
-)
-
-if (bullet3_ADDED)
-    add_library(bullet3 INTERFACE)
-    target_include_directories(bullet3 INTERFACE ${bullet3_SOURCE_DIR}/src)
-endif()
-
-add_library(glad
+add_library(common
     common/include/glad/glad.h
+    common/include/stb_image.h
+    common/include/stb_rect_pack.h
     common/src/glad.c
+    common/src/stb_image.cpp
+    common/src/stb_rect_pack.cpp
 )
 
 if(WIN32)
-    target_sources(glad
+    target_sources(common
         PRIVATE
             common/src/glad_wgl.c
     )
 endif()
 
-target_include_directories(glad
-    PUBLIC
-        common/include
-)
-
-add_library(stb
-    common/include/stb_image.h
-    common/include/stb_rect_pack.h
-    common/src/stb_image.cpp
-    common/src/stb_rect_pack.cpp
-)
-
-target_include_directories(stb
+target_include_directories(common
     PUBLIC
         common/include
 )
@@ -144,8 +86,7 @@ target_compile_features(construct
 
 target_link_libraries(construct
     PUBLIC
-        glad
-        stb
+        common
         glm
         spdlog
         EnTT
@@ -156,7 +97,7 @@ target_link_libraries(construct
         bullet3
 )
 
-add_executable(bsp-tri-physics
+add_executable(game
     README.md
     game/include/application.h
     game/src/genmapapp.cpp
@@ -169,23 +110,23 @@ add_executable(bsp-tri-physics
 if(WIN32)
     find_package(OPENGL REQUIRED)
 
-    target_sources(bsp-tri-physics
+    target_sources(game
         PUBLIC
             game/src/application-win32.cpp
     )
 
-    target_link_libraries(bsp-tri-physics
+    target_link_libraries(game
         PRIVATE
             ${OPENGL_LIBRARIES}
     )
 endif()
 
-target_include_directories(bsp-tri-physics
+target_include_directories(game
     PRIVATE
         game/include
 )
 
-target_link_libraries(bsp-tri-physics
+target_link_libraries(game
     PRIVATE
         glad
         stb
@@ -196,7 +137,7 @@ target_link_libraries(bsp-tri-physics
 )
 
 if(MINGW)
-    target_link_options(bsp-tri-physics
+    target_link_options(game
         PUBLIC
             -static
     )
