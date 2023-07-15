@@ -6,18 +6,35 @@ include(cmake/Dependencies.cmake)
 project(bsp-tri-physics)
 
 add_library(common
+    README.md
+    common/include/application.h
+    common/include/fontmanager.h
     common/include/glad/glad.h
+    common/include/ifont.h
+    common/include/inputstate.h
     common/include/stb_image.h
     common/include/stb_rect_pack.h
+    common/include/stb_truetype.h
+    common/src/fontmanager.cpp
     common/src/glad.c
     common/src/stb_image.cpp
     common/src/stb_rect_pack.cpp
+    common/src/stb_truetype.cpp
 )
 
 if(WIN32)
+    find_package(OPENGL REQUIRED)
+
     target_sources(common
         PRIVATE
+            common/src/application-win32.cpp
             common/src/glad_wgl.c
+    )
+
+    target_link_libraries(common
+        PRIVATE
+            ${OPENGL_LIBRARIES}
+            spdlog
     )
 endif()
 
@@ -35,7 +52,6 @@ add_library(construct
     construct/include/glbuffer.h
     construct/include/glshader.h
     construct/include/iassetmanager.hpp
-    construct/include/inputstate.h
     construct/include/iphysicsservice.hpp
     construct/include/irenderer.hpp
     construct/include/valve/bsp/hl1bspasset.h
@@ -97,48 +113,5 @@ target_link_libraries(construct
         bullet3
 )
 
-add_executable(game
-    README.md
-    game/include/application.h
-    game/src/genmapapp.cpp
-    game/src/genmapapp.h
-    game/src/main.cpp
-    game/src/renderers/opengl/openglrenderer.cpp
-    game/src/renderers/opengl/openglrenderer.hpp
-)
-
-if(WIN32)
-    find_package(OPENGL REQUIRED)
-
-    target_sources(game
-        PUBLIC
-            game/src/application-win32.cpp
-    )
-
-    target_link_libraries(game
-        PRIVATE
-            ${OPENGL_LIBRARIES}
-    )
-endif()
-
-target_include_directories(game
-    PRIVATE
-        game/include
-)
-
-target_link_libraries(game
-    PRIVATE
-        glad
-        stb
-        construct
-        glm
-        spdlog
-        EnTT
-)
-
-if(MINGW)
-    target_link_options(game
-        PUBLIC
-            -static
-    )
-endif()
+add_subdirectory(game)
+add_subdirectory(viewer)

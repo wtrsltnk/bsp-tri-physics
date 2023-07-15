@@ -11,25 +11,28 @@ bool IsMouseButtonPushed(
     const struct InputState &inputState,
     MouseButtons button)
 {
-
     return inputState.MouseButtonStates[button] && inputState.MouseButtonStates[button] != inputState.PreviousState->MouseButtonStates[button];
 }
 
 #include <glad/glad.h>
 
 #include <GL/wglext.h>
-#include <windowsx.h>
 #include <sstream>
+#include <windowsx.h>
 
 #define EXAMPLE_NAME "genmap"
 
 class Win32Application
 {
 public:
+    Win32Application(
+        const RunOptions &runOptions);
+
     bool Startup(
-        std::function<bool()> intialize,
+        std::function<bool(void *)> intialize,
         std::function<void(int width, int height)> resize,
-        std::function<void()> destroy);
+        std::function<void()> destroy,
+        std::function<bool(void *)> rawEvent);
 
     int Run(
         std::function<bool(std::chrono::microseconds time, const struct InputState &inputState)> tick);
@@ -37,6 +40,9 @@ public:
 private:
     std::function<void(int width, int height)> _resize;
     std::function<void()> _destroy;
+    std::function<bool(void *)> _rawEvent;
+
+    const RunOptions &_runOptions;
     HINSTANCE _hInstance;
     HWND _hWnd;
     HDC _hDC;
@@ -60,13 +66,20 @@ private:
         LPARAM lParam);
 };
 
+Win32Application::Win32Application(
+    const RunOptions &runOptions)
+    : _runOptions(runOptions)
+{}
+
 bool Win32Application::Startup(
-    std::function<bool()> intialize,
+    std::function<bool(void *)> intialize,
     std::function<void(int width, int height)> resize,
-    std::function<void()> destroy)
+    std::function<void()> destroy,
+    std::function<bool(void *)> rawEvent)
 {
     _resize = resize;
     _destroy = destroy;
+    _rawEvent = rawEvent;
     _hInstance = GetModuleHandle(nullptr);
 
     WNDCLASS wc;
@@ -195,7 +208,7 @@ bool Win32Application::Startup(
     spdlog::debug("GL_RENDERER                 : {0}", glGetString(GL_RENDERER));
     spdlog::debug("GL_VENDOR                   : {0}", glGetString(GL_VENDOR));
 
-    if (!intialize())
+    if (!intialize(_hWnd))
     {
         Destroy("Initialize failed");
         return false;
@@ -232,8 +245,6 @@ int Win32Application::Run(
     std::function<bool(std::chrono::microseconds time, const struct InputState &inputState)> tick)
 {
     bool running = true;
-    int fps = 0;
-    long long fpsTime = 0;
 
     _inputState.PreviousState = &_previousInputState;
 
@@ -269,26 +280,25 @@ int Win32Application::Run(
         auto centerX = rect.left + ((rect.right - rect.left) / 2);
         auto centerY = rect.top + ((rect.bottom - rect.top) / 2);
 
-        SetCursorPos(centerX, centerY);
+        if (_runOptions.hideMouse)
+        {
+            SetCursorPos(centerX, centerY);
+        }
 
         auto time = GetDiffTime();
 
-        fpsTime += time.count();
-        fps++;
-        if (fpsTime > 1000)
-        {
-            std::stringstream ss;
-            ss << "FPS: " <<  fps;
-            SetWindowText(_hWnd, ss.str().c_str());
-
-            fps = 0;
-            fpsTime -= 1000;
-        }
-
         running = tick(time, _inputState);
 
-        _inputState.MousePointerPosition[0] = centerX - point.x;
-        _inputState.MousePointerPosition[1] = centerY - point.y;
+        if (_runOptions.hideMouse)
+        {
+            _inputState.MousePointerPosition[0] = centerX - point.x;
+            _inputState.MousePointerPosition[1] = centerY - point.y;
+        }
+        else
+        {
+            _inputState.MousePointerPosition[0] = point.x;
+            _inputState.MousePointerPosition[1] = point.y;
+        }
 
         SwapBuffers(_hDC);
     }
@@ -323,11 +333,29 @@ void Win32Application::Destroy(
     }
 }
 
+struct ProcParams
+{
+    HWND hWnd;
+    UINT uMsg;
+    WPARAM wParam;
+    LPARAM lParam;
+};
+
 LRESULT CALLBACK Win32Application::objectProc(
     UINT uMsg,
     WPARAM wParam,
     LPARAM lParam)
 {
+    struct ProcParams procParams = {
+        _hWnd,
+        uMsg,
+        wParam,
+        lParam,
+    };
+
+    if (_rawEvent(&procParams))
+        return true;
+
     switch (uMsg)
     {
         case WM_SIZE:
@@ -337,14 +365,21 @@ LRESULT CALLBACK Win32Application::objectProc(
 
             this->_resize(width, height);
 
-            RECT rect;
-            GetWindowRect(this->_hWnd, &rect);
-            SetCursorPos(
-                rect.left + ((rect.right - rect.left) / 2),
-                rect.top + ((rect.bottom - rect.top) / 2));
-            ClipCursor(&rect);
-            ShowCursor(FALSE);
-
+            if (_runOptions.hideMouse)
+            {
+                RECT rect;
+                GetWindowRect(this->_hWnd, &rect);
+                SetCursorPos(
+                    rect.left + ((rect.right - rect.left) / 2),
+                    rect.top + ((rect.bottom - rect.top) / 2));
+                ClipCursor(&rect);
+                ShowCursor(FALSE);
+            }
+            else
+            {
+                ClipCursor(NULL);
+                ShowCursor(TRUE);
+            }
             break;
         }
         case WM_DESTROY:
@@ -775,6 +810,7 @@ LRESULT CALLBACK Win32Application::objectProc(
             break;
         }
     }
+
     return DefWindowProc(this->_hWnd, uMsg, wParam, lParam);
 }
 
@@ -813,13 +849,15 @@ LRESULT CALLBACK Win32Application::staticProc(
 }
 
 Win32Application *CreateApplication(
-    std::function<bool()> initialize,
+    std::function<bool(void *)> initialize,
     std::function<void(int width, int height)> resize,
-    std::function<void()> destroy)
+    std::function<void()> destroy,
+    std::function<bool(void *)> rawEvent,
+    const RunOptions &runOptions)
 {
-    static Win32Application app;
+    static Win32Application app(runOptions);
 
-    if (app.Startup(initialize, resize, destroy))
+    if (app.Startup(initialize, resize, destroy, rawEvent))
     {
         return &app;
     }
@@ -891,12 +929,16 @@ void InputState::OnMouseButtonUp(
     }
 }
 
-int Run(IApplication *t)
+int Run(
+    IApplication *t,
+    const RunOptions &runOptions)
 {
     auto app = CreateApplication(
-        [&]() { return t->Startup(); },
+        [&](void *hwnd) { return t->Startup(hwnd); },
         [&](int w, int h) { t->Resize(w, h); },
-        [&]() { t->Destroy(); });
+        [&]() { t->Destroy(); },
+        [&](void *eventPackage) { return t->RawEvent(eventPackage); },
+        runOptions);
 
     return app->Run([&](std::chrono::microseconds time, const struct InputState &inputState) { return t->Tick(time, inputState); });
 }

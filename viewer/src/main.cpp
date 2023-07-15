@@ -1,14 +1,14 @@
 
 #include "application.h"
-#include "genmapapp.h"
+#include "goldsrcviewerapp.h"
 
 int main(
     int argc,
     char *argv[])
 {
-    spdlog::set_level(spdlog::level::debug); // Set global log level to debug
+    spdlog::set_level(spdlog::level::trace); // Set global log level to debug
 
-    Game t;
+    GoldSrcViewerApp t;
 
     if (argc > 2)
     {
@@ -23,7 +23,7 @@ int main(
 
     struct RunOptions runOptions =
         {
-            .hideMouse = true,
+            .hideMouse = false,
         };
 
     return Run(&t, runOptions);

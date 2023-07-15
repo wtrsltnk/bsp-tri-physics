@@ -11,7 +11,8 @@ class IApplication
 public:
     virtual ~IApplication() {}
 
-    virtual bool Startup() = 0;
+    virtual bool Startup(
+        void *windowHandle) = 0;
 
     virtual void Resize(
         int width,
@@ -23,10 +24,18 @@ public:
         std::chrono::microseconds time,
         const struct InputState &inputState) = 0;
 
+    virtual bool RawEvent(
+        void *eventPackage) = 0;
+
 protected:
     IApplication() {}
 };
 
-int Run(IApplication *t);
+struct RunOptions
+{
+    bool hideMouse = false;
+};
+
+int Run(IApplication *t, const RunOptions &runOptions = {});
 
 #endif // APPLICATION_H

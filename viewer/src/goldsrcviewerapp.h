@@ -1,9 +1,8 @@
-#ifndef GENMAPAPP_H
-#define GENMAPAPP_H
+#ifndef GOLDSRCVIEWERAPP_H
+#define GOLDSRCVIEWERAPP_H
 
 #include <engine.hpp>
 
-#include "console.h"
 #include <application.h>
 #include <chrono>
 #include <entt/entt.hpp>
@@ -15,10 +14,10 @@
 #include <string>
 #include <vector>
 
-class Game : public IApplication
+class GoldSrcViewerApp : public IApplication
 {
 public:
-    Game();
+    GoldSrcViewerApp();
 
     virtual void SetFilename(
         const char *root,
@@ -38,10 +37,7 @@ public:
         const struct InputState &inputState);
 
     virtual bool RawEvent(
-        void *)
-    {
-        return false;
-    }
+        void *eventPackage);
 
 private:
     std::unique_ptr<IRenderer> _renderer;
@@ -49,8 +45,7 @@ private:
     std::unique_ptr<IAssetManager> _assets;
     std::unique_ptr<valve::IFileSystem> _fileSystem;
     std::unique_ptr<Engine> _engine;
-    std::unique_ptr<Console> _console;
     std::string _map;
 };
 
-#endif // GENMAPAPP_H
+#endif // GOLDSRCVIEWERAPP_H

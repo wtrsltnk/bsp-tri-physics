@@ -1,10 +1,12 @@
-#include "genmapapp.h"
+#include "goldsrcviewerapp.h"
 
 #include "assetmanager.h"
 #include "physicsservice.hpp"
 #include "renderers/opengl/openglrenderer.hpp"
 
 #include <application.h>
+#include <backends/imgui_impl_opengl3.h>
+#include <backends/imgui_impl_win32.h>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -12,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <imgui.h>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -21,13 +24,13 @@ bool showPhysicsDebug = false;
 
 void EnableOpenGlDebug();
 
-Game::Game()
+GoldSrcViewerApp::GoldSrcViewerApp()
 {
     _fileSystem = std::make_unique<FileSystem>();
     _assets = std::make_unique<AssetManager>(_fileSystem.get());
 }
 
-void Game::SetFilename(
+void GoldSrcViewerApp::SetFilename(
     const char *root,
     const char *map)
 {
@@ -44,9 +47,25 @@ void Game::SetFilename(
     }
 }
 
-bool Game::Startup(
+bool GoldSrcViewerApp::Startup(
     void *windowHandle)
 {
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    // ImGui::StyleColorsClassic();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplWin32_InitForOpenGL(windowHandle);
+    ImGui_ImplOpenGL3_Init();
+
     spdlog::debug("Startup()");
 
     spdlog::info("{} @ {}", _fileSystem->Mod(), _fileSystem->Root().generic_string());
@@ -56,7 +75,6 @@ bool Game::Startup(
     _physics = std::make_unique<PhysicsService>();
 
     _engine = std::make_unique<Engine>(_renderer.get(), _physics.get(), _assets.get());
-    _console = std::make_unique<Console>();
 
     EnableOpenGlDebug();
 
@@ -67,87 +85,98 @@ bool Game::Startup(
     return true;
 }
 
-bool Game::Tick(
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+struct ProcParams
+{
+    HWND hWnd;
+    UINT uMsg;
+    WPARAM wParam;
+    LPARAM lParam;
+};
+
+bool GoldSrcViewerApp::RawEvent(
+    void *eventPackage)
+{
+    auto procParams = reinterpret_cast<ProcParams *>(eventPackage);
+
+    if (ImGui_ImplWin32_WndProcHandler(procParams->hWnd, procParams->uMsg, procParams->wParam, procParams->lParam))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool show_demo_window = true;
+bool show_another_window = false;
+ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+bool GoldSrcViewerApp::Tick(
     std::chrono::microseconds time,
     const struct InputState &inputState)
 {
-    if (_console->Tick(time, inputState))
+    _engine->Update(time, inputState);
+
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+    if (show_demo_window)
     {
-        struct InputState emptyImputState = {};
-        _engine->Update(time, emptyImputState);
+        ImGui::ShowDemoWindow(&show_demo_window);
     }
-    else
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
     {
-        _engine->Update(time, inputState);
+        static float f = 0.0f;
+        static int counter = 0;
+
+        ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
+
+        ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
+        ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
+        ImGui::Checkbox("Another Window", &show_another_window);
+
+        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+        ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
+
+        if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
+            counter++;
+        ImGui::SameLine();
+        ImGui::Text("counter = %d", counter);
+
+        ImGuiIO &io = ImGui::GetIO();
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        ImGui::End();
     }
 
-    //    if (IsMouseButtonPushed(inputState, MouseButtons::LeftButton))
-    //    {
-    //        const auto entity = _registry.create();
+    // 3. Show another simple window.
+    if (show_another_window)
+    {
+        ImGui::Begin("Another Window", &show_another_window); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        ImGui::Text("Hello from another window!");
+        if (ImGui::Button("Close Me"))
+            show_another_window = false;
+        ImGui::End();
+    }
 
-    //        auto comp = _physics->AddCube(1.0f, glm::vec3(30.0f), _cam.Position() + (_cam.Forward() * 40.0f));
-
-    //        _physics->ApplyForce(comp, glm::normalize(_cam.Forward()) * 7000.0f);
-
-    //        _registry.assign<PhysicsComponent>(entity, comp);
-    //        _registry.assign<BallComponent>(entity, 0);
-    //    }
+    // Rendering
+    ImGui::Render();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     _engine->Render(time);
 
-    //    auto cubes = _registry.view<PhysicsComponent, BallComponent>();
-
-    //    glDisable(GL_BLEND);
-    //    for (auto &entity : cubes)
-    //    {
-    //        auto physicsComponent = _registry.get<PhysicsComponent>(entity);
-
-    //        auto m = glm::scale(_physics->GetMatrix(physicsComponent), glm::vec3(3.0f));
-
-    //        _defaultShader->use();
-    //        _defaultShader->setupSpriteType(9);
-    //        _defaultShader->setupBrightness(0.5f);
-    //        _defaultShader->setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    //        _defaultShader->setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), m);
-
-    //        glDrawArrays(GL_TRIANGLES, _firstCubeVertex, 36);
-    //    }
-
-    //    if (showPhysicsDebug)
-    //    {
-    //        VertexArray vertexAndColorBuffer;
-
-    //        _physics->RenderDebug(vertexAndColorBuffer);
-
-    //        vertexAndColorBuffer.upload();
-
-    //        auto m = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / 0.08f, 1.0f / 0.08f, 1.0f / 0.08f));
-
-    //        _defaultShader->use();
-    //        _defaultShader->setupSpriteType(9);
-    //        _defaultShader->setupBrightness(0.5f);
-    //        _defaultShader->setupColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    //        _defaultShader->setupMatrices(_projectionMatrix, _cam.GetViewMatrix(), m);
-
-    //        glActiveTexture(GL_TEXTURE1);
-    //        glBindTexture(GL_TEXTURE_2D, _emptyWhiteTexture);
-
-    //        glActiveTexture(GL_TEXTURE0);
-    //        glBindTexture(GL_TEXTURE_2D, _emptyWhiteTexture);
-
-    //        glDisable(GL_DEPTH_TEST);
-    //        vertexAndColorBuffer.render(VertexArrayRenderModes::Lines);
-    //        glEnable(GL_DEPTH_TEST);
-    //    }
-
-    _console->Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     return true; // to keep running
 }
 
-void Game::Resize(
+void GoldSrcViewerApp::Resize(
     int width,
     int height)
 {
@@ -155,11 +184,9 @@ void Game::Resize(
 
     _engine->SetProjectionMatrix(
         glm::perspective(glm::radians(70.0f), float(width) / float(height), 0.1f, 4096.0f));
-
-    _console->Resize(width, height);
 }
 
-void Game::Destroy()
+void GoldSrcViewerApp::Destroy()
 {
 }
 

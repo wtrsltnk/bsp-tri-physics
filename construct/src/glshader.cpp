@@ -100,7 +100,7 @@ GLuint ShaderType::compile(
     _bonesUniformId = 0;
     if (boneCount > 0)
     {
-        GLuint uniform_block_index = glGetUniformBlockIndex(_shaderId, "u_bones");
+        GLuint uniform_block_index = glGetUniformBlockIndex(_shaderId, "BonesBlock");
 
         glUniformBlockBinding(_shaderId, uniform_block_index, _bonesUniformId);
 
@@ -238,6 +238,10 @@ GLuint ShaderType::compileDefaultShader()
 {
     spdlog::debug("compiling Default shader");
 
+    int maxVertexUniformBlocks, maxUniformBlockSize;
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &maxVertexUniformBlocks);
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
+
     std::string const vshader(GLSL(
         layout(location = 0) in vec3 a_vertex;
         layout(location = 1) in vec3 a_color;
@@ -249,7 +253,7 @@ GLuint ShaderType::compileDefaultShader()
         uniform mat4 u_model;
         uniform vec4 u_color;
         uniform int u_spritetype; // 0 for cylindrical; 1 for spherical; 2 for Oriented
-        layout(std140) uniform BonesBlock {
+        uniform BonesBlock {
             mat4 u_bones[64];
         };
 

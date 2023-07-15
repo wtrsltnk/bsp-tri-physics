@@ -416,14 +416,31 @@ bool BspAsset::LoadTextures(
 
     for (int t = 0; t < int(*_bspFile->_textureData.data()); t++)
     {
+        spdlog::trace("texture #{} @ {}", t, textureTable[t]);
+
+        if (textureTable[t] < 0)
+        {
+            spdlog::debug("skipping texture #{} with invalid data index: {}", t, textureTable[t]);
+
+            auto tex = new Texture("unknown");
+
+            tex->DefaultTexture();
+
+            textures.push_back(tex);
+
+            continue;
+        }
+
         const unsigned char *textureData = _bspFile->_textureData.data() + textureTable[t];
 
         tBSPMipTexHeader *miptex = (tBSPMipTexHeader *)textureData;
 
         auto tex = new Texture(miptex->name);
 
-        if (miptex->offsets[0] == 0)
+        if (miptex->offsets[0] <= 0)
         {
+            spdlog::trace("looking for {} in wad files", miptex->name);
+
             for (std::vector<WadAsset *>::const_iterator i = wads.cbegin(); i != wads.cend(); ++i)
             {
                 WadAsset *wad = *i;

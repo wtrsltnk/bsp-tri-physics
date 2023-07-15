@@ -130,7 +130,7 @@ bool Engine::Load(
                     auto originComponent = _registry.try_get<OriginComponent>(entity);
 
                     // Todo, use angles for character look direction at spawn
-                    _character = _physicsService->AddCharacter(15, 16, 45, originComponent->Origin);
+                    _character = _physicsService->AddCharacter(15, 16, 35, originComponent->Origin);
 
                     break;
                 }
