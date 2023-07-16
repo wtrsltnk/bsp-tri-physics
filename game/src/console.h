@@ -7,7 +7,8 @@
 class Console
 {
 public:
-    Console();
+    Console(
+        std::shared_ptr<IFont> &font);
 
     void Resize(
         int width,

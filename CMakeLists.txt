@@ -43,6 +43,15 @@ target_include_directories(common
         common/include
 )
 
+target_compile_features(common
+    PUBLIC
+        cxx_std_20
+        cxx_auto_type
+        cxx_nullptr
+        cxx_range_for
+        cxx_thread_local
+)
+
 add_library(construct
     construct/include/assetmanager.h
     construct/include/camera.h

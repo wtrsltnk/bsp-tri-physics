@@ -7,6 +7,7 @@
 #include <application.h>
 #include <chrono>
 #include <entt/entt.hpp>
+#include <fontmanager.h>
 #include <glbuffer.h>
 #include <glm/glm.hpp>
 #include <irenderer.hpp>
@@ -50,6 +51,7 @@ private:
     std::unique_ptr<valve::IFileSystem> _fileSystem;
     std::unique_ptr<Engine> _engine;
     std::unique_ptr<Console> _console;
+    FontManager _fonts;
     std::string _map;
 };
 

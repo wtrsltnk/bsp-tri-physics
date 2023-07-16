@@ -2,7 +2,9 @@
 
 #include <inputstate.h>
 
-Console::Console()
+Console::Console(
+    std::shared_ptr<IFont> &font)
+    : _font(font)
 {}
 
 void Console::Resize(

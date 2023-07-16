@@ -56,7 +56,9 @@ bool Game::Startup(
     _physics = std::make_unique<PhysicsService>();
 
     _engine = std::make_unique<Engine>(_renderer.get(), _physics.get(), _assets.get());
-    _console = std::make_unique<Console>();
+
+    auto font = _fonts.LoadFont(L"consola", 12.0f);
+    _console = std::make_unique<Console>(font);
 
     EnableOpenGlDebug();
 

@@ -5,13 +5,13 @@
 
 struct IFont
 {
-    std::wstring fonName;
-    float fontSize = 12.0f;
+    std::wstring fontName;
+    float fontSize;
 
-    virtual void DrawText(
+    virtual void Print(
         const wchar_t *text,
-        int x,
-        int y) = 0;
+        float x,
+        float y) = 0;
 };
 
 #endif // IFONT_H
