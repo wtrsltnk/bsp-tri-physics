@@ -228,7 +228,7 @@ const char *fshader = GLSL(
         vec4 texel1;
         texel0 = texture2D(u_tex0, v_uv_tex);
         texel1 = texture2D(u_tex1, v_uv_light) + vec4(u_brightness, u_brightness, u_brightness, u_brightness);
-        if (texel0.a < 0.1)
+        if (texel0.a < 0.8)
             discard;
         else
             color = texel0 * texel1 * v_color;
