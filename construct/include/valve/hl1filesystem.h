@@ -5,6 +5,8 @@
 
 #include <filesystem>
 #include <fstream>
+#include <map>
+#include <memory>
 #include <string>
 
 class FileSystemSearchPath

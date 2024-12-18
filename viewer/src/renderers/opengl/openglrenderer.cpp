@@ -6,6 +6,13 @@
 
 OpenGlRenderer::~OpenGlRenderer() = default;
 
+void OpenGlRenderer::Resize(
+    int width,
+    int height)
+{
+    glViewport(0, 0, width, height);
+}
+
 unsigned int OpenGlRenderer::LoadTexture(
     int width,
     int height,
@@ -129,4 +136,11 @@ void OpenGlRenderer::EnableDepthTesting()
 void OpenGlRenderer::DisableDepthTesting()
 {
     glDisable(GL_DEPTH_TEST);
+}
+
+void OpenGlRenderer::RenderTriangleFans(
+    int start,
+    int count)
+{
+    glDrawArrays(GL_TRIANGLE_FAN, start, count);
 }

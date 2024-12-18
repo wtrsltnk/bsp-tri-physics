@@ -7,7 +7,13 @@
 class OpenGlRenderer : public IRenderer
 {
 public:
+    OpenGlRenderer();
+
     virtual ~OpenGlRenderer();
+
+    virtual void Resize(
+        int width,
+        int height);
 
     virtual unsigned int LoadTexture(
         int width,
@@ -35,6 +41,10 @@ public:
     virtual void EnableDepthTesting();
 
     virtual void DisableDepthTesting();
+
+    virtual void RenderTriangleFans(
+        int start,
+        int count);
 
 private:
     std::filesystem::path _assetFolder = std::filesystem::path("./assets");

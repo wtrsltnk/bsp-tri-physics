@@ -6,7 +6,6 @@
 #include <glm/glm.hpp>
 #include <irenderer.hpp>
 #include <string>
-#include <vector>
 
 #define GLSL(src) "#version 400\n" #src
 

@@ -2,12 +2,11 @@
 #define ENTITIES_HPP
 
 #include <entt/entt.hpp>
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 
 struct MeshComponent
 {
-    GLuint vao = 0;
+    unsigned int vao = 0;
     size_t asset = 0;
     int node = -1;
 };

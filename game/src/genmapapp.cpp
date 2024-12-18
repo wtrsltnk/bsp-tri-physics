@@ -5,21 +5,12 @@
 #include "renderers/opengl/openglrenderer.hpp"
 
 #include <application.h>
-#include <ctime>
 #include <filesystem>
-#include <fstream>
-#include <glad/glad.h>
 #include <glm/glm.hpp>
-#include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/string_cast.hpp>
-#include <iostream>
 #include <spdlog/spdlog.h>
-#include <sstream>
-#include <stb_image.h>
 
 bool showPhysicsDebug = false;
-
-void EnableOpenGlDebug();
 
 Game::Game()
 {
@@ -44,6 +35,8 @@ void Game::SetFilename(
     }
 }
 
+std::shared_ptr<IFont> font;
+
 bool Game::Startup(
     void *windowHandle)
 {
@@ -57,12 +50,9 @@ bool Game::Startup(
 
     _engine = std::make_unique<Engine>(_renderer.get(), _physics.get(), _assets.get());
 
-    auto font = _fonts.LoadFont(L"consola", 12.0f);
+    font = _fonts.LoadFont(L"consola", 12.0f);
+
     _console = std::make_unique<Console>(font);
-
-    EnableOpenGlDebug();
-
-    glClearColor(0.0f, 0.45f, 0.7f, 1.0f);
 
     _engine->Load(_map);
 
@@ -73,6 +63,16 @@ bool Game::Tick(
     std::chrono::microseconds time,
     const struct InputState &inputState)
 {
+    int fps = 0;
+    if (time.count() > 0)
+    {
+        fps = int(1000000.0 / double(time.count()));
+    }
+
+    std::wstringstream wss;
+    wss << fps;
+    font->Print(wss.str().c_str(), 10, 10);
+
     if (_console->Tick(time, inputState))
     {
         struct InputState emptyImputState = {};
@@ -94,8 +94,6 @@ bool Game::Tick(
     //        _registry.assign<PhysicsComponent>(entity, comp);
     //        _registry.assign<BallComponent>(entity, 0);
     //    }
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     _engine->Render(time);
 
@@ -153,7 +151,7 @@ void Game::Resize(
     int width,
     int height)
 {
-    glViewport(0, 0, width, height);
+    _renderer->Resize(width, height);
 
     _engine->SetProjectionMatrix(
         glm::perspective(glm::radians(70.0f), float(width) / float(height), 0.1f, 4096.0f));
@@ -163,56 +161,6 @@ void Game::Resize(
 
 void Game::Destroy()
 {
-}
-
-void OpenGLMessageCallback(
-    unsigned source,
-    unsigned type,
-    unsigned id,
-    unsigned severity,
-    int length,
-    const char *message,
-    const void *userParam)
-{
-    (void)source;
-    (void)type;
-    (void)id;
-    (void)length;
-    (void)userParam;
-
-    switch (severity)
-    {
-        case GL_DEBUG_SEVERITY_HIGH:
-            spdlog::critical("{} - {}", source, message);
-            return;
-        case GL_DEBUG_SEVERITY_MEDIUM:
-            spdlog::error("{} - {}", source, message);
-            return;
-        case GL_DEBUG_SEVERITY_LOW:
-            spdlog::warn("{} - {}", source, message);
-            return;
-        case GL_DEBUG_SEVERITY_NOTIFICATION:
-            spdlog::trace("{} - {}", source, message);
-            return;
-    }
-
-    spdlog::debug("Unknown severity level!");
-    spdlog::debug(message);
-}
-
-void EnableOpenGlDebug()
-{
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(OpenGLMessageCallback, nullptr);
-
-    glDebugMessageControl(
-        GL_DONT_CARE,
-        GL_DONT_CARE,
-        GL_DEBUG_SEVERITY_NOTIFICATION,
-        0,
-        NULL,
-        GL_FALSE);
 }
 
 //// pos x, y, z, color h, s, v

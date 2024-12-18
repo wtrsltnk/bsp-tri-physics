@@ -38,6 +38,10 @@ class IRenderer
 public:
     virtual ~IRenderer() {}
 
+    virtual void Resize(
+        int width,
+        int height) = 0;
+
     virtual unsigned int LoadTexture(
         int width,
         int height,
@@ -64,6 +68,10 @@ public:
     virtual void EnableDepthTesting() = 0;
 
     virtual void DisableDepthTesting() = 0;
+
+    virtual void RenderTriangleFans(
+        int start,
+        int count) = 0;
 };
 
 #endif // IRENDERER_H

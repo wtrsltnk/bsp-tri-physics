@@ -5,7 +5,6 @@
 #include "../hltypes.h"
 #include "hl1sprtypes.h"
 
-#include <glad/glad.h>
 #include <string>
 #include <vector>
 
@@ -39,7 +38,7 @@ namespace valve
             // File format header
             tSPRHeader *_header;
 
-            std::vector<GLuint> _frames;
+            std::vector<unsigned int> _frames;
         };
 
     } // namespace hl1

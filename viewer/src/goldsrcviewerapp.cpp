@@ -9,15 +9,12 @@
 #include <backends/imgui_impl_win32.h>
 #include <ctime>
 #include <filesystem>
-#include <fstream>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <imgui.h>
-#include <iostream>
 #include <spdlog/spdlog.h>
-#include <sstream>
 #include <stb_image.h>
 
 bool showPhysicsDebug = false;

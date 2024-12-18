@@ -3,8 +3,6 @@
 
 #include <filesystem>
 #include <glm/glm.hpp>
-#include <map>
-#include <set>
 #include <string>
 #include <vector>
 

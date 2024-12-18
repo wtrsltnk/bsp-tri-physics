@@ -1,5 +1,6 @@
 #include "engine.hpp"
 
+#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -59,7 +60,7 @@ bool Engine::Load(
             .Angles = glm::vec3(0.0f),
         };
 
-        _registry.assign<OriginComponent>(entity, originComponent);
+        _registry.emplace<OriginComponent>(entity, originComponent);
 
         RenderComponent rc = {
             .Amount = 0,
@@ -67,9 +68,9 @@ bool Engine::Load(
             .Mode = RenderModes::NormalBlending,
         };
 
-        _registry.assign<RenderComponent>(entity, rc);
+        _registry.emplace<RenderComponent>(entity, rc);
 
-        _registry.assign<SpriteComponent>(entity, BuildSpriteComponent(sprAsset));
+        _registry.emplace<SpriteComponent>(entity, BuildSpriteComponent(sprAsset));
     }
     else if (rootAsset->AssetType() == valve::AssetTypes::Mdl)
     {
@@ -84,7 +85,7 @@ bool Engine::Load(
             .Angles = glm::vec3(0.0f),
         };
 
-        _registry.assign<OriginComponent>(entity, originComponent);
+        _registry.emplace<OriginComponent>(entity, originComponent);
 
         RenderComponent rc = {
             .Amount = 0,
@@ -92,9 +93,9 @@ bool Engine::Load(
             .Mode = RenderModes::NormalBlending,
         };
 
-        _registry.assign<RenderComponent>(entity, rc);
+        _registry.emplace<RenderComponent>(entity, rc);
 
-        _registry.assign<StudioComponent>(entity, BuildStudioComponent(mdlAsset));
+        _registry.emplace<StudioComponent>(entity, BuildStudioComponent(mdlAsset));
 
         auto offset = glm::length(center);
         if (offset == 0.0f)
@@ -116,24 +117,22 @@ bool Engine::Load(
         auto entities = _registry.view<PlayerStartComponent, OriginComponent>();
 
         std::srand(static_cast<unsigned int>(std::time(nullptr)));
-        if (!entities.empty())
+
+        auto size = entities.size_hint();
+        auto randomMax = std::rand() % size;
+
+        size_t i = 0;
+        for (auto &entity : entities)
         {
-            auto size = entities.size();
-            auto randomMax = std::rand() % size;
-
-            size_t i = 0;
-            for (auto &entity : entities)
+            i++;
+            if (i >= randomMax)
             {
-                i++;
-                if (i >= randomMax)
-                {
-                    auto originComponent = _registry.try_get<OriginComponent>(entity);
+                auto originComponent = _registry.try_get<OriginComponent>(entity);
 
-                    // Todo, use angles for character look direction at spawn
-                    _character = _physicsService->AddCharacter(15, 16, 35, originComponent->Origin);
+                // Todo, use angles for character look direction at spawn
+                _character = _physicsService->AddCharacter(15, 16, 35, originComponent->Origin);
 
-                    break;
-                }
+                break;
             }
         }
     }
@@ -254,7 +253,7 @@ SpriteComponent Engine::BuildSpriteComponent(
 bool Engine::SetupBsp(
     valve::hl1::BspAsset *bspAsset)
 {
-    _lightmapIndices = std::vector<GLuint>();
+    _lightmapIndices = std::vector<unsigned int>();
     for (size_t i = 0; i < bspAsset->_lightMaps.size(); i++)
     {
         auto &tex = bspAsset->_lightMaps[i];
@@ -269,7 +268,7 @@ bool Engine::SetupBsp(
         _lightmapIndices.push_back(textureIndex);
     }
 
-    _textureIndices = std::vector<GLuint>();
+    _textureIndices = std::vector<unsigned int>();
     for (size_t i = 0; i < bspAsset->_textures.size(); i++)
     {
         auto &tex = bspAsset->_textures[i];
@@ -338,7 +337,7 @@ bool Engine::SetupEntities(
         {
             GrabTriangles(bspAsset, 0, triangles);
 
-            _registry.assign<ModelComponent>(entity, 0);
+            _registry.emplace<ModelComponent>(entity, 0);
 
             SetupSky(bspAsset);
 
@@ -348,14 +347,14 @@ bool Engine::SetupEntities(
                 .Mode = RenderModes::NormalBlending,
             };
 
-            _registry.assign<RenderComponent>(entity, rc);
+            _registry.emplace<RenderComponent>(entity, rc);
 
             OriginComponent oc = {
                 .Origin = glm::vec3(0.0f),
                 .Angles = glm::vec3(0.0f),
             };
 
-            _registry.assign<OriginComponent>(entity, oc);
+            _registry.emplace<OriginComponent>(entity, oc);
 
             continue;
         }
@@ -365,12 +364,12 @@ bool Engine::SetupEntities(
             bspEntity.classname == "info_player_coop")
         {
             auto originComponent = BuildOriginComponent(bspEntity);
-            _registry.assign<OriginComponent>(entity, originComponent);
+            _registry.emplace<OriginComponent>(entity, originComponent);
 
             PlayerStartComponent playerStartComponent = {
                 .className = bspEntity.classname,
             };
-            _registry.assign<PlayerStartComponent>(entity, playerStartComponent);
+            _registry.emplace<PlayerStartComponent>(entity, playerStartComponent);
 
             continue;
         }
@@ -388,7 +387,7 @@ bool Engine::SetupEntities(
 
             if (mc.Model != 0)
             {
-                _registry.assign<ModelComponent>(entity, mc);
+                _registry.emplace<ModelComponent>(entity, mc);
 
                 if (bspEntity.classname.rfind("func_wall", 0) == 0 ||
                     bspEntity.classname.rfind("func_breakable", 0) == 0 ||
@@ -412,11 +411,11 @@ bool Engine::SetupEntities(
 
                 if (sprAsset != nullptr)
                 {
-                    _registry.assign<SpriteComponent>(entity, BuildSpriteComponent(sprAsset, scale));
+                    _registry.emplace<SpriteComponent>(entity, BuildSpriteComponent(sprAsset, scale));
                 }
                 else if (mdlAsset != nullptr)
                 {
-                    _registry.assign<StudioComponent>(entity, BuildStudioComponent(mdlAsset, scale));
+                    _registry.emplace<StudioComponent>(entity, BuildStudioComponent(mdlAsset, scale));
                 }
             }
         }
@@ -445,11 +444,11 @@ bool Engine::SetupEntities(
             std::istringstream(rendermode->second) >> (rc.Mode);
         }
 
-        _registry.assign<RenderComponent>(entity, rc);
+        _registry.emplace<RenderComponent>(entity, rc);
 
         auto originComponent = BuildOriginComponent(bspEntity);
 
-        _registry.assign<OriginComponent>(entity, originComponent);
+        _registry.emplace<OriginComponent>(entity, originComponent);
     }
 
     _registry.sort<RenderComponent>([](const RenderComponent &lhs, const RenderComponent &rhs) {
@@ -644,16 +643,16 @@ void Engine::Update(
     if (_character.bodyIndex > 0)
     {
         HandleBspInput(time, inputState);
+
+        _cam.ProcessMouseMovement(
+            float(inputState.MousePointerPosition[0]),
+            float(inputState.MousePointerPosition[1]),
+            true);
     }
     else
     {
         HandleMdlInput(time, inputState);
     }
-
-    _cam.ProcessMouseMovement(
-        float(inputState.MousePointerPosition[0]),
-        float(inputState.MousePointerPosition[1]),
-        true);
 }
 
 void Engine::HandleBspInput(
@@ -768,9 +767,13 @@ void Engine::HandleMdlInput(
     _cam.SetPosition(pos);
 }
 
+#include <glad/glad.h>
+
 bool Engine::Render(
     std::chrono::microseconds time)
 {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
@@ -846,7 +849,7 @@ void Engine::RenderModelsByRenderMode(
 
     auto entities = _registry.view<RenderComponent, ModelComponent, OriginComponent>();
 
-    if (entities.empty())
+    if (entities.size_hint() == 0)
     {
         return;
     }
@@ -883,7 +886,7 @@ void Engine::RenderModelsByRenderMode(
 
             _renderer->BindLightmap(_lightmapIndices[_faces[i].lightmap]);
 
-            glDrawArrays(GL_TRIANGLE_FAN, _faces[i].firstVertex, _faces[i].vertexCount);
+            _renderer->RenderTriangleFans(_faces[i].firstVertex, _faces[i].vertexCount);
         }
     }
 }
@@ -896,7 +899,7 @@ void Engine::RenderSpritesByRenderMode(
 
     auto entities = _registry.view<RenderComponent, SpriteComponent, OriginComponent>();
 
-    if (entities.empty())
+    if (entities.size_hint() == 0)
     {
         return;
     }
@@ -943,7 +946,7 @@ void Engine::RenderSpritesByRenderMode(
 
         _renderer->BindLightmap(_emptyWhiteTexture);
 
-        glDrawArrays(GL_TRIANGLE_FAN, spriteComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
+        _renderer->RenderTriangleFans(spriteComponent->FirstVertexInBuffer + face.firstVertex, face.vertexCount);
     }
 }
 
@@ -958,7 +961,7 @@ void Engine::RenderStudioModelsByRenderMode(
 
     auto entities = _registry.view<RenderComponent, StudioComponent, OriginComponent>();
 
-    if (entities.empty())
+    if (entities.size_hint() == 0)
     {
         return;
     }
@@ -1108,7 +1111,7 @@ void Engine::RenderSky()
     {
         _renderer->BindTexture(_skyTextureIndices[i]);
 
-        glDrawArrays(GL_TRIANGLE_FAN, _firstSkyVertex + (i * 4), 4);
+        _renderer->RenderTriangleFans(_firstSkyVertex + (i * 4), 4);
     }
 
     _renderer->EnableDepthTesting();

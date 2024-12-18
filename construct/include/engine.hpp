@@ -64,11 +64,11 @@ private:
     BufferType _vertexBuffer;
     std::unique_ptr<IShader> _defaultShader;
     std::vector<valve::tFace> _faces;
-    std::vector<GLuint> _textureIndices;
-    std::vector<GLuint> _lightmapIndices;
+    std::vector<unsigned int> _textureIndices;
+    std::vector<unsigned int> _lightmapIndices;
     int _firstSkyVertex = 0;
-    GLuint _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
-    GLuint _emptyWhiteTexture = 0;
+    unsigned int _skyTextureIndices[6] = {0, 0, 0, 0, 0, 0};
+    unsigned int _emptyWhiteTexture = 0;
 
     // Game logic
     PhysicsComponent _character;

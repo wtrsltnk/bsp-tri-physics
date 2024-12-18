@@ -6,6 +6,22 @@
 
 OpenGlRenderer::~OpenGlRenderer() = default;
 
+void EnableOpenGlDebug();
+
+OpenGlRenderer::OpenGlRenderer()
+{
+    EnableOpenGlDebug();
+
+    glClearColor(0.0f, 0.45f, 0.7f, 1.0f);
+}
+
+void OpenGlRenderer::Resize(
+    int width,
+    int height)
+{
+    glViewport(0, 0, width, height);
+}
+
 unsigned int OpenGlRenderer::LoadTexture(
     int width,
     int height,
@@ -129,4 +145,61 @@ void OpenGlRenderer::EnableDepthTesting()
 void OpenGlRenderer::DisableDepthTesting()
 {
     glDisable(GL_DEPTH_TEST);
+}
+
+void OpenGlRenderer::RenderTriangleFans(
+    int start,
+    int count)
+{
+    glDrawArrays(GL_TRIANGLE_FAN, start, count);
+}
+
+void OpenGLMessageCallback(
+    unsigned source,
+    unsigned type,
+    unsigned id,
+    unsigned severity,
+    int length,
+    const char *message,
+    const void *userParam)
+{
+    (void)source;
+    (void)type;
+    (void)id;
+    (void)length;
+    (void)userParam;
+
+    switch (severity)
+    {
+        case GL_DEBUG_SEVERITY_HIGH:
+            spdlog::critical("{} - {}", source, message);
+            return;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            spdlog::error("{} - {}", source, message);
+            return;
+        case GL_DEBUG_SEVERITY_LOW:
+            spdlog::warn("{} - {}", source, message);
+            return;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            spdlog::trace("{} - {}", source, message);
+            return;
+    }
+
+    spdlog::debug("Unknown severity level!");
+    spdlog::debug(message);
+}
+
+void EnableOpenGlDebug()
+{
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(OpenGLMessageCallback, nullptr);
+
+    glDebugMessageControl(
+        GL_DONT_CARE,
+        GL_DONT_CARE,
+        GL_DEBUG_SEVERITY_NOTIFICATION,
+        0,
+        NULL,
+        GL_FALSE);
 }

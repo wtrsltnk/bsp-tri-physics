@@ -2,7 +2,6 @@
 #define IASSETMANAGER_H
 
 #include <glm/glm.hpp>
-#include <memory>
 #include <string>
 #include <valve/hl1filesystem.h>
 

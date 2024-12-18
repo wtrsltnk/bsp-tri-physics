@@ -2,7 +2,7 @@
 CPMAddPackage(
     NAME spdlog
     GITHUB_REPOSITORY gabime/spdlog
-    VERSION 1.7.0
+    VERSION 1.15.0
 )
 
 CPMAddPackage(
@@ -13,7 +13,7 @@ CPMAddPackage(
 
 CPMAddPackage(
     NAME EnTT
-    VERSION 3.1.1
+    VERSION 3.14.0
     GITHUB_REPOSITORY skypjack/entt
     # EnTT's CMakeLists screws with configuration options
     DOWNLOAD_ONLY True

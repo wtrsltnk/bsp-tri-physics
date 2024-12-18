@@ -17,7 +17,6 @@ bool IsMouseButtonPushed(
 #include <glad/glad.h>
 
 #include <GL/wglext.h>
-#include <sstream>
 #include <windowsx.h>
 
 #define EXAMPLE_NAME "genmap"
@@ -203,10 +202,10 @@ bool Win32Application::Startup(
 
     gladLoadGL();
 
-    spdlog::debug("GL_VERSION                  : {0}", glGetString(GL_VERSION));
-    spdlog::debug("GL_SHADING_LANGUAGE_VERSION : {0}", glGetString(GL_SHADING_LANGUAGE_VERSION));
-    spdlog::debug("GL_RENDERER                 : {0}", glGetString(GL_RENDERER));
-    spdlog::debug("GL_VENDOR                   : {0}", glGetString(GL_VENDOR));
+    spdlog::debug("GL_VERSION                  : {0}", (const char *)glGetString(GL_VERSION));
+    spdlog::debug("GL_SHADING_LANGUAGE_VERSION : {0}", (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION));
+    spdlog::debug("GL_RENDERER                 : {0}", (const char *)glGetString(GL_RENDERER));
+    spdlog::debug("GL_VENDOR                   : {0}", (const char *)glGetString(GL_VENDOR));
 
     if (!intialize(_hWnd))
     {
