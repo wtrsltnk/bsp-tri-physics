@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 #include <glshader.h>
-#include <spdlog/spdlog.h>
+#include <print>
 
 OpenGlRenderer::~OpenGlRenderer() = default;
 
@@ -99,7 +99,7 @@ std::unique_ptr<IShader> OpenGlRenderer::LoadShader(
     {
         if (!shader->compileDefaultShader())
         {
-            spdlog::error("failed to compile default shader");
+            std::println("[ERR] failed to compile default shader");
 
             return nullptr;
         }
@@ -115,7 +115,7 @@ std::unique_ptr<IShader> OpenGlRenderer::LoadShader(
 
     if (!shader->setupAttributes())
     {
-        spdlog::error("failed to setup shader attributes");
+        std::println("[ERR] failed to setup shader attributes");
 
         return nullptr;
     }
@@ -172,21 +172,21 @@ void OpenGLMessageCallback(
     switch (severity)
     {
         case GL_DEBUG_SEVERITY_HIGH:
-            spdlog::critical("{} - {}", source, message);
+            std::println("[FAT] {} - {}", source, message);
             return;
         case GL_DEBUG_SEVERITY_MEDIUM:
-            spdlog::error("{} - {}", source, message);
+            std::println("[ERR] {} - {}", source, message);
             return;
         case GL_DEBUG_SEVERITY_LOW:
-            spdlog::warn("{} - {}", source, message);
+            std::println("[WRN] {} - {}", source, message);
             return;
         case GL_DEBUG_SEVERITY_NOTIFICATION:
-            spdlog::trace("{} - {}", source, message);
+            std::println("[DBG] {} - {}", source, message);
             return;
     }
 
-    spdlog::debug("Unknown severity level!");
-    spdlog::debug(message);
+    std::println("[DBG] Unknown severity level!");
+    std::println("[DBG] {}", message);
 }
 
 void EnableOpenGlDebug()

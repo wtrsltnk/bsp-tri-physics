@@ -1,19 +1,13 @@
 
 CPMAddPackage(
-    NAME spdlog
-    GITHUB_REPOSITORY gabime/spdlog
-    VERSION 1.15.0
-)
-
-CPMAddPackage(
     NAME glm
     GITHUB_REPOSITORY g-truc/glm
-    GIT_TAG 0.9.9.7
+    GIT_TAG 1.0.1
 )
 
 CPMAddPackage(
     NAME EnTT
-    VERSION 3.14.0
+    VERSION 3.15.0
     GITHUB_REPOSITORY skypjack/entt
     # EnTT's CMakeLists screws with configuration options
     DOWNLOAD_ONLY True
@@ -25,7 +19,7 @@ if (EnTT_ADDED)
 endif()
 
 CPMAddPackage(
-    NAME bullet3
+    NAME bullet
     GITHUB_REPOSITORY bulletphysics/bullet3
     GIT_TAG 2.89
     OPTIONS
@@ -45,9 +39,9 @@ CPMAddPackage(
         "INSTALL_LIBS On"
 )
 
-if (bullet3_ADDED)
-    add_library(bullet3 INTERFACE)
-    target_include_directories(bullet3 INTERFACE ${bullet3_SOURCE_DIR}/src)
+if (bullet_ADDED)
+    add_library(bullet INTERFACE)
+    target_include_directories(bullet INTERFACE ${bullet_SOURCE_DIR}/src)
 endif()
 
 CPMAddPackage(

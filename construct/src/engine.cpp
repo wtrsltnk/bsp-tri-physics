@@ -2,7 +2,7 @@
 
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
-#include <spdlog/spdlog.h>
+#include <print>
 #include <sstream>
 #include <valve/mdl/hl1mdlinstance.h>
 
@@ -44,7 +44,7 @@ bool Engine::Load(
 
     if (rootAsset == nullptr)
     {
-        spdlog::error("Failed to load {}", asset);
+        std::println("[ERR] Failed to load {}", asset);
 
         return false;
     }
@@ -139,7 +139,7 @@ bool Engine::Load(
 
     if (!_vertexBuffer.upload())
     {
-        spdlog::error("failed to upload vertex data");
+        std::println("[ERR] failed to upload vertex data");
 
         return false;
     }

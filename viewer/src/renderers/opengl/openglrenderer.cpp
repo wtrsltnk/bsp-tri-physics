@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 #include <glshader.h>
-#include <spdlog/spdlog.h>
+#include <print>
 
 OpenGlRenderer::~OpenGlRenderer() = default;
 
@@ -90,7 +90,7 @@ std::unique_ptr<IShader> OpenGlRenderer::LoadShader(
     {
         if (!shader->compileDefaultShader())
         {
-            spdlog::error("failed to compile default shader");
+            std::println("[ERR] failed to compile default shader");
 
             return nullptr;
         }
@@ -106,7 +106,7 @@ std::unique_ptr<IShader> OpenGlRenderer::LoadShader(
 
     if (!shader->setupAttributes())
     {
-        spdlog::error("failed to setup shader attributes");
+        std::println("[ERR] failed to setup shader attributes");
 
         return nullptr;
     }

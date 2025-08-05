@@ -1,6 +1,6 @@
 #include <valve/hl1filesystem.h>
 
-#include <spdlog/spdlog.h>
+#include <print>
 
 FileSystemSearchPath::FileSystemSearchPath(
     const std::filesystem::path &root)
@@ -38,13 +38,13 @@ bool FileSystemSearchPath::LoadFile(
     const std::string &filename,
     std::vector<valve::byte> &data)
 {
-    spdlog::debug("Opening file: {0}", filename);
+    std::println("[DBG] Opening file: {0}", filename);
 
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
 
     if (!file.is_open())
     {
-        spdlog::error("File not found: {0}", filename);
+        std::println("[ERR] file not found: {}", filename);
 
         return false;
     }
@@ -63,13 +63,13 @@ bool FileSystemSearchPath::LoadFile(
 valve::IOpenFile *FileSystemSearchPath::OpenFile(
     const std::string &filename)
 {
-    spdlog::debug("Opening file: {0}", filename);
+    std::println("[DBG] Opening file: {}", filename);
 
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
 
     if (!file.is_open())
     {
-        spdlog::error("File not found: {0}", filename);
+        std::println("[ERR] file not found: {0}", filename);
 
         return nullptr;
     }
@@ -121,12 +121,6 @@ void FileSystemSearchPath::FileSystemSearchPathOpenFile::Close()
     Pack->CloseFile(this);
 }
 
-
-
-
-
-
-
 PakSearchPath::PakSearchPath(
     const std::filesystem::path &root)
     : FileSystemSearchPath(root)
@@ -153,7 +147,7 @@ void PakSearchPath::OpenPakFile()
 {
     if (!std::filesystem::exists(_root))
     {
-        spdlog::error("{} does not exist", _root.string());
+        std::println("[ERR] {} does not exist", _root.string());
 
         return;
     }
@@ -162,7 +156,7 @@ void PakSearchPath::OpenPakFile()
 
     if (!_pakFile.is_open())
     {
-        spdlog::error("failed to open pak file {}", _root.string());
+        std::println("[ERR] failed to open pak file {}", _root.string());
 
         return;
     }
@@ -173,7 +167,7 @@ void PakSearchPath::OpenPakFile()
     {
         _pakFile.close();
 
-        spdlog::error("failed to open pak file {} due to wrong header {}", _root.string(), _header.signature);
+        std::println("[ERR] failed to open pak file {} due to wrong header {}", _root.string(), _header.signature);
 
         return;
     }
@@ -182,7 +176,7 @@ void PakSearchPath::OpenPakFile()
     _pakFile.seekg(_header.lumpsOffset, std::fstream::beg);
     _pakFile.read((char *)_files.data(), _header.lumpsSize);
 
-    spdlog::debug("loaded {} containing {} files", _root.string(), _files.size());
+    std::println("[DBG] loaded {} containing {} files", _root.string(), _files.size());
 }
 
 std::string PakSearchPath::LocateFile(
@@ -405,7 +399,7 @@ bool FileSystem::FindRootFromFilePath(
 
     if (!path.has_parent_path())
     {
-        spdlog::error("given path ({}) has no parent path", filePath);
+        std::println("[ERR] given path ({}) has no parent path", filePath);
 
         return false;
     }

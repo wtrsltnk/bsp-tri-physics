@@ -4,7 +4,6 @@
 #include "inputstate.h"
 #include <chrono>
 #include <functional>
-#include <spdlog/spdlog.h>
 
 class IApplication
 {

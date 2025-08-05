@@ -14,7 +14,7 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <imgui.h>
-#include <spdlog/spdlog.h>
+#include <print>
 #include <stb_image.h>
 
 bool showPhysicsDebug = false;
@@ -63,9 +63,9 @@ bool GoldSrcViewerApp::Startup(
     ImGui_ImplWin32_InitForOpenGL(windowHandle);
     ImGui_ImplOpenGL3_Init();
 
-    spdlog::debug("Startup()");
+    std::println("[DBG] startup()");
 
-    spdlog::info("{} @ {}", _fileSystem->Mod(), _fileSystem->Root().generic_string());
+    std::println("[INF] {} @ {}", _fileSystem->Mod(), _fileSystem->Root().generic_string());
 
     _renderer = std::make_unique<OpenGlRenderer>();
 
@@ -205,21 +205,21 @@ void OpenGLMessageCallback(
     switch (severity)
     {
         case GL_DEBUG_SEVERITY_HIGH:
-            spdlog::critical("{} - {}", source, message);
+            std::println("[FAT] {} - {}", source, message);
             return;
         case GL_DEBUG_SEVERITY_MEDIUM:
-            spdlog::error("{} - {}", source, message);
+            std::println("[ERR] {} - {}", source, message);
             return;
         case GL_DEBUG_SEVERITY_LOW:
-            spdlog::warn("{} - {}", source, message);
+            std::println("[WRN] {} - {}", source, message);
             return;
         case GL_DEBUG_SEVERITY_NOTIFICATION:
-            spdlog::trace("{} - {}", source, message);
+            std::println("[TRC] {} - {}", source, message);
             return;
     }
 
-    spdlog::debug("Unknown severity level!");
-    spdlog::debug(message);
+    std::println("[DBG] Unknown severity level!");
+    std::println("[DBG] {}", message);
 }
 
 void EnableOpenGlDebug()

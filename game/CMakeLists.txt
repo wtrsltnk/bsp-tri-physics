@@ -19,7 +19,6 @@ target_link_libraries(game
         common
         construct
         glm
-        spdlog
         EnTT
 )
 

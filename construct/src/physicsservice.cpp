@@ -4,7 +4,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
-#include <spdlog/spdlog.h>
+#include <print>
 
 const btScalar scalef = 0.08f;
 

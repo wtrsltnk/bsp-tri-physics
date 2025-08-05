@@ -3,7 +3,7 @@
 #include <glbuffer.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
-#include <spdlog/spdlog.h>
+#include <print>
 #include <string>
 
 ShaderType::ShaderType() = default;
@@ -44,7 +44,7 @@ GLuint ShaderType::compile(
         glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
         std::vector<char> vertShaderError(static_cast<size_t>((logLength > 1) ? logLength : 1));
         glGetShaderInfoLog(vertShader, logLength, NULL, &vertShaderError[0]);
-        spdlog::error("error compiling vertex shader: {}", vertShaderError.data());
+        std::println("[ERR] compiling vertex shader: {}", vertShaderError.data());
 
         return 0;
     }
@@ -60,7 +60,7 @@ GLuint ShaderType::compile(
         glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
         std::vector<char> fragShaderError(static_cast<size_t>((logLength > 1) ? logLength : 1));
         glGetShaderInfoLog(fragShader, logLength, NULL, &fragShaderError[0]);
-        spdlog::error("error compiling fragment shader: {}", fragShaderError.data());
+        std::println("[ERR] compiling fragment shader: {}", fragShaderError.data());
 
         return 0;
     }
@@ -76,7 +76,7 @@ GLuint ShaderType::compile(
         glGetProgramiv(_shaderId, GL_INFO_LOG_LENGTH, &logLength);
         std::vector<char> programError(static_cast<size_t>((logLength > 1) ? logLength : 1));
         glGetProgramInfoLog(_shaderId, logLength, NULL, &programError[0]);
-        spdlog::error("error linking shader: {}", programError.data());
+        std::println("[ERR] linking shader: {}", programError.data());
 
         return 0;
     }
@@ -236,7 +236,7 @@ const char *fshader = GLSL(
 
 GLuint ShaderType::compileDefaultShader()
 {
-    spdlog::debug("compiling Default shader");
+    std::println("[INF] compiling Default shader");
 
     int maxVertexUniformBlocks, maxUniformBlockSize;
     glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &maxVertexUniformBlocks);

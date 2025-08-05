@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
-#include <spdlog/spdlog.h>
+#include <print>
 
 bool showPhysicsDebug = false;
 
@@ -40,9 +40,9 @@ std::shared_ptr<IFont> font;
 bool Game::Startup(
     void *windowHandle)
 {
-    spdlog::debug("Startup()");
+    std::println("[DBG] startup()");
 
-    spdlog::info("{} @ {}", _fileSystem->Mod(), _fileSystem->Root().generic_string());
+    std::println("[INF] {} @ {}", _fileSystem->Mod(), _fileSystem->Root().generic_string());
 
     _renderer = std::make_unique<OpenGlRenderer>();
 

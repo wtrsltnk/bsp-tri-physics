@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.7)
-
+cmake_minimum_required(VERSION 3.12)
+set(CMAKE_RUNTIME_LIBS "Multi-threaded Debug DLL")
 include(cmake/CPM.cmake)
 include(cmake/Dependencies.cmake)
 
@@ -34,7 +34,6 @@ if(WIN32)
     target_link_libraries(common
         PRIVATE
             ${OPENGL_LIBRARIES}
-            spdlog
     )
 endif()
 
@@ -43,9 +42,14 @@ target_include_directories(common
         common/include
 )
 
+target_compile_definitions(common
+    PUBLIC
+        GLM_ENABLE_EXPERIMENTAL
+)
+
 target_compile_features(common
     PUBLIC
-        cxx_std_20
+        cxx_std_23
         cxx_auto_type
         cxx_nullptr
         cxx_range_for
@@ -102,7 +106,7 @@ target_link_libraries(construct
 
 target_compile_features(construct
     PUBLIC
-        cxx_std_20
+        cxx_std_23
         cxx_auto_type
         cxx_nullptr
         cxx_range_for
@@ -113,13 +117,12 @@ target_link_libraries(construct
     PUBLIC
         common
         glm
-        spdlog
         EnTT
         BulletDynamics
         BulletCollision
         BulletSoftBody
         LinearMath
-        bullet3
+        bullet
 )
 
 add_subdirectory(game)

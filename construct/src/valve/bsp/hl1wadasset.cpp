@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
-#include <spdlog/spdlog.h>
+#include <print>
 #include <sstream>
 
 using namespace valve::hl1;
@@ -185,7 +185,7 @@ std::vector<WadAsset *> WadAsset::LoadWads(
         }
         else
         {
-            spdlog::error("Unable to load wad files @ {0}", fullWadPath.string());
+            std::println("[ERR] unable to load wad files @ {}", fullWadPath.string());
             delete wad;
         }
     }

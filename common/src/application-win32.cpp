@@ -17,6 +17,7 @@ bool IsMouseButtonPushed(
 #include <glad/glad.h>
 
 #include <GL/wglext.h>
+#include <print>
 #include <windowsx.h>
 
 #define EXAMPLE_NAME "genmap"
@@ -202,10 +203,10 @@ bool Win32Application::Startup(
 
     gladLoadGL();
 
-    spdlog::debug("GL_VERSION                  : {0}", (const char *)glGetString(GL_VERSION));
-    spdlog::debug("GL_SHADING_LANGUAGE_VERSION : {0}", (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION));
-    spdlog::debug("GL_RENDERER                 : {0}", (const char *)glGetString(GL_RENDERER));
-    spdlog::debug("GL_VENDOR                   : {0}", (const char *)glGetString(GL_VENDOR));
+    std::println("GL_VERSION                  : {}", (const char *)glGetString(GL_VERSION));
+    std::println("GL_SHADING_LANGUAGE_VERSION : {}", (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION));
+    std::println("GL_RENDERER                 : {}", (const char *)glGetString(GL_RENDERER));
+    std::println("GL_VENDOR                   : {}", (const char *)glGetString(GL_VENDOR));
 
     if (!intialize(_hWnd))
     {
@@ -312,7 +313,7 @@ void Win32Application::Destroy(
 {
     if (errorMessage != nullptr)
     {
-        spdlog::error(errorMessage);
+        std::println("[ERR] {}", errorMessage);
     }
 
     _destroy();
@@ -861,7 +862,7 @@ Win32Application *CreateApplication(
         return &app;
     }
 
-    spdlog::error("Create application failed");
+    std::println("[ERR] Create application failed");
 
     exit(0);
 

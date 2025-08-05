@@ -1,10 +1,9 @@
 #include <valve/bsp/hl1bspasset.h>
 
 #include "stb_rect_pack.h"
+#include <format>
 #include <glm/gtx/string_cast.hpp>
-#include <iostream>
-#include <spdlog/spdlog.h>
-#include <sstream>
+#include <print>
 #include <stb_image.h>
 #include <valve/bsp/hl1bsptypes.h>
 
@@ -134,12 +133,12 @@ bool valve::hl1::BspAsset::LoadSkyTextures()
         }
     }
 
-    spdlog::info("loading sky {}", sky);
+    std::println("[INF] loading sky {}", sky);
 
     for (int i = 0; i < 6; i++)
     {
         std::vector<valve::byte> buffer;
-        auto filenametga = fmt::format("gfx/env/{}{}.tga", sky, shortNames[i]);
+        auto filenametga = std::format("gfx/env/{}{}.tga", sky, shortNames[i]);
         auto location = _fs->LocateFile(filenametga);
 
         fs::path fullPath;
@@ -149,7 +148,7 @@ bool valve::hl1::BspAsset::LoadSkyTextures()
         }
         else
         {
-            auto filenamebmp = fmt::format("gfx/env/{}{}.bmp", sky, shortNames[i]);
+            auto filenamebmp = std::format("gfx/env/{}{}.bmp", sky, shortNames[i]);
             location = _fs->LocateFile(filenamebmp);
 
             if (!location.empty())
@@ -158,14 +157,14 @@ bool valve::hl1::BspAsset::LoadSkyTextures()
             }
             else
             {
-                spdlog::error("unable to find sky texture {} as either tga and bmp", shortNames[i]);
+                std::println("[ERR] unable to find sky texture {} as either tga and bmp", shortNames[i]);
                 return false;
             }
         }
 
         if (!_fs->LoadFile(fullPath.generic_string(), buffer))
         {
-            spdlog::error("failed to load sky texture");
+            std::println("[ERR] failed to load sky texture");
             return false;
         }
 
@@ -182,7 +181,7 @@ bool valve::hl1::BspAsset::LoadSkyTextures()
         }
         else
         {
-            spdlog::error("unable to load tga or bmp from file data");
+            std::println("[ERR] unable to load tga or bmp from file data");
 
             return false;
         }
@@ -359,7 +358,7 @@ bool BspAsset::LoadFacesWithLightmaps(
         {
             if (!LoadLightmap(in, *tempLightmaps[f], min, max))
             {
-                spdlog::error("failed to load lightmap {}", f);
+                std::println("[ERR] failed to load lightmap {}", f);
             }
         }
         else
@@ -416,11 +415,11 @@ bool BspAsset::LoadTextures(
 
     for (int t = 0; t < int(*_bspFile->_textureData.data()); t++)
     {
-        spdlog::trace("texture #{} @ {}", t, textureTable[t]);
+        std::println("[TRC] texture #{} @ {}", t, textureTable[t]);
 
         if (textureTable[t] < 0)
         {
-            spdlog::debug("skipping texture #{} with invalid data index: {}", t, textureTable[t]);
+            std::println("[DBG] skipping texture #{} with invalid data index: {}", t, textureTable[t]);
 
             auto tex = new Texture("unknown");
 
@@ -439,7 +438,7 @@ bool BspAsset::LoadTextures(
 
         if (miptex->offsets[0] <= 0)
         {
-            spdlog::trace("looking for {} in wad files", miptex->name);
+            std::println("[TRC] looking for {} in wad files", miptex->name);
 
             for (std::vector<WadAsset *>::const_iterator i = wads.cbegin(); i != wads.cend(); ++i)
             {
@@ -492,7 +491,7 @@ bool BspAsset::LoadTextures(
         }
         else
         {
-            spdlog::error("Texture \"{0}\" not found, using default texture", miptex->name);
+            std::println("[ERR] texture \"{}\" not found, using default texture", miptex->name);
 
             tex->DefaultTexture();
         }
@@ -561,13 +560,13 @@ glm::vec3 BspAsset::Trace(
     auto nextClipNode = _bspFile->_clipnodeData[clipNodeIndex].children[(toInFront >= 0.0f) ? 0 : 1];
     if (nextClipNode < -1)
     {
-        spdlog::debug("we are in the solid! {}", nextClipNode);
+        std::println("[DBG] we are in the solid! {}", nextClipNode);
         float frac = fromInFront < 0.0f ? (fromInFront + DIST_EPSILON) / (fromInFront - toInFront) : (fromInFront - DIST_EPSILON) / (fromInFront - toInFront);
 
         glm::vec3 mid;
         VectorLerp(from, frac, to, mid);
 
-        spdlog::debug("{} {} {}", glm::to_string(from), glm::to_string(mid), glm::to_string(to));
+        std::println("[DBG] {} {} {}", glm::to_string(from), glm::to_string(mid), glm::to_string(to));
         return mid;
     }
 
@@ -594,7 +593,7 @@ bool BspAsset::IsInContents(
         return false;
     }
 
-    spdlog::debug("    clipNode     : {}", clipNodeIndex);
+    std::println("[DBG]     clipNode     : {}", clipNodeIndex);
 
     auto plane = _bspFile->_planes[_bspFile->_clipnodeData[clipNodeIndex].planeIndex];
 
@@ -634,19 +633,19 @@ bool BspAsset::IsInContents(
         {
             target = to;
 
-            spdlog::debug("    {}, {}, {}", target.x, target.y, target.z);
+            std::println("[DBG]     {}, {}, {}", target.x, target.y, target.z);
 
             return false;
         }
 
         target = newTo;
 
-        spdlog::debug("    jump {}", restartCount);
-        spdlog::debug("    new to       : {}, {}, {}", newTo.x, newTo.y, newTo.z);
-        spdlog::debug("    plane        : {}", _bspFile->_clipnodeData[clipNodeIndex].planeIndex);
-        spdlog::debug("    plane normal : {}, {}, {} [{}]", plane.normal.x, plane.normal.y, plane.normal.z, plane.distance);
-        spdlog::debug("    toInFront    : {}", toInFront);
-        spdlog::debug("    fromInFront  : {}", fromInFront);
+        std::println("[DBG]     jump {}", restartCount);
+        std::println("[DBG]     new to       : {}, {}, {}", newTo.x, newTo.y, newTo.z);
+        std::println("[DBG]     plane        : {}", _bspFile->_clipnodeData[clipNodeIndex].planeIndex);
+        std::println("[DBG]     plane normal : {}, {}, {} [{}]", plane.normal.x, plane.normal.y, plane.normal.z, plane.distance);
+        std::println("[DBG]     toInFront    : {}", toInFront);
+        std::println("[DBG]     fromInFront  : {}", fromInFront);
 
         return IsInContents(from, newTo, target, _bspFile->_modelData[0].headnode[0]);
     }
