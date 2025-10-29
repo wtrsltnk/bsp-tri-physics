@@ -114,6 +114,8 @@ namespace valve
     class IFileSystem
     {
     public:
+        virtual ~IFileSystem() = default;
+
         virtual bool FindRootFromFilePath(
             const std::string &filePath) = 0;
 

@@ -3,8 +3,6 @@
 #include <entities.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
-#include <iostream>
-#include <print>
 
 const btScalar scalef = 0.08f;
 
@@ -194,8 +192,7 @@ btScalar FindGround::addSingleResult(
 void PhysicsService::Step(
     std::chrono::microseconds diff)
 {
-    // spdlog::info("Step({})", diff.count());
-    static long long timeInUs = 0;
+    static double timeInUs = 0;
 
     timeInUs += diff.count();
 

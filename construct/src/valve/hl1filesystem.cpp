@@ -38,7 +38,7 @@ bool FileSystemSearchPath::LoadFile(
     const std::string &filename,
     std::vector<valve::byte> &data)
 {
-    std::println("[DBG] Opening file: {0}", filename);
+    std::println("[DBG] Opening file: {}", filename);
 
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
 
@@ -69,7 +69,7 @@ valve::IOpenFile *FileSystemSearchPath::OpenFile(
 
     if (!file.is_open())
     {
-        std::println("[ERR] file not found: {0}", filename);
+        std::println("[ERR] file not found: {}", filename);
 
         return nullptr;
     }

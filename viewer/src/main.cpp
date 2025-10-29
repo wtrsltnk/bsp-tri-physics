@@ -12,12 +12,12 @@ int main(
 
     if (argc > 2)
     {
-        std::println("[DBG] loading {1} from {0}", argv[1], argv[2]);
+        std::println("[DBG] loading {} from {}", argv[1], argv[2]);
         t.SetFilename(argv[1], argv[2]);
     }
     else if (argc > 1)
     {
-        std::println("[DBG] loading map {0}", argv[1]);
+        std::println("[DBG] loading map {}", argv[1]);
         t.SetFilename(argv[1], nullptr);
     }
 

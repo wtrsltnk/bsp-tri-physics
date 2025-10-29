@@ -2,7 +2,6 @@
 
 #include <glbuffer.h>
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
 #include <print>
 #include <string>
 

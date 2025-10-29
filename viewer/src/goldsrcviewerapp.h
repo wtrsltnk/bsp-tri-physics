@@ -9,10 +9,8 @@
 #include <glbuffer.h>
 #include <glm/glm.hpp>
 #include <irenderer.hpp>
-#include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
 class GoldSrcViewerApp : public IApplication
 {

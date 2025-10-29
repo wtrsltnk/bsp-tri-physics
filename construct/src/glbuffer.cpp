@@ -2,9 +2,6 @@
 
 #include <glad/glad.h>
 
-#include "glshader.h"
-#include <map>
-
 BufferType::BufferType() = default;
 
 BufferType::~BufferType() = default;

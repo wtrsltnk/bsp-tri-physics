@@ -3,7 +3,6 @@
 
 #include "inputstate.h"
 #include <chrono>
-#include <functional>
 
 class IApplication
 {

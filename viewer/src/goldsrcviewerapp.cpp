@@ -214,7 +214,7 @@ void OpenGLMessageCallback(
             std::println("[WRN] {} - {}", source, message);
             return;
         case GL_DEBUG_SEVERITY_NOTIFICATION:
-            std::println("[TRC] {} - {}", source, message);
+            std::println("[TRA] {} - {}", source, message);
             return;
     }
 

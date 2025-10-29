@@ -4,8 +4,6 @@
 #include "valve/mdl/hl1mdlasset.h"
 #include "valve/spr/hl1sprasset.h"
 #include <algorithm>
-#include <ranges>
-#include <string_view>
 
 AssetManager::AssetManager(
     valve::IFileSystem *fileSystem)
